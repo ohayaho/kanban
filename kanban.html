@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%236366f1'/><stop offset='100%25' stop-color='%238b5cf6'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><rect x='10' y='14' width='10' height='36' rx='3' fill='white' opacity='0.9'/><rect x='27' y='14' width='10' height='24' rx='3' fill='white' opacity='0.7'/><rect x='44' y='14' width='10' height='16' rx='3' fill='white' opacity='0.5'/></svg>">
+<style>
+  :root {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-hover: #e2e8f0;
+    --border: #cbd5e1;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --todo: #f59e0b;
+    --doing: #3b82f6;
+    --done: #10b981;
+    --cat-work: #8b5cf6;
+    --cat-personal: #ec4899;
+    --cat-study: #0e7490;
+    --cat-health: #f97316;
+    --cat-kids: #2e7d32;
+    --cat-other: #64748b;
+    --radius: 10px;
+    --shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  /* Header */
+  header {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--todo), var(--doing), var(--done));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .header-stats span { display: flex; align-items: center; gap: 4px; }
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .header-buttons { display: flex; gap: 8px; }
+  .btn-add {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+  .btn-add:active { transform: scale(0.97); }
+
+  /* Repeat Templates Section */
+  .repeat-section {
+    margin: 14px 14px 0;
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .repeat-header {
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+  }
+  .repeat-header:hover { background: var(--bg); }
+  .repeat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .repeat-toggle {
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+  .repeat-toggle.open { transform: rotate(90deg); }
+  .repeat-body {
+    display: none;
+    padding: 0 14px 12px;
+  }
+  .repeat-body.open { display: block; }
+  .repeat-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .repeat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+  }
+  .repeat-item .ri-cat {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .repeat-item .ri-title { font-weight: 600; }
+  .repeat-item .ri-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.72rem;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  .repeat-item .ri-delete:hover { color: #ef4444; }
+  .repeat-add {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .repeat-add input {
+    flex: 1;
+    min-width: 120px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .repeat-add input:focus { outline: none; border-color: #6366f1; }
+  .repeat-add select {
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .repeat-add button {
+    padding: 6px 14px;
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .repeat-add button:hover { background: #4f46e5; }
+  .repeat-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* Board */
+  .board {
+    display: flex;
+    gap: 14px;
+    padding: 14px;
+    min-height: calc(100vh - 80px);
+    align-items: stretch;
+    justify-content: center;
+  }
+
+  /* Column */
+  .column {
+    flex: 1 1 0;
+    min-width: 200px;
+    max-width: 30vw;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .column-header {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-bottom: 2px solid var(--border);
+  }
+  .column-header .col-label { display: flex; align-items: center; gap: 8px; }
+  .column-header .col-icon {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .column-header .col-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+  }
+  .column[data-status="todo"] .col-icon { background: var(--todo); box-shadow: 0 0 8px var(--todo); }
+  .column[data-status="doing"] .col-icon { background: var(--doing); box-shadow: 0 0 8px var(--doing); }
+  .column[data-status="done"] .col-icon { background: var(--done); box-shadow: 0 0 8px var(--done); }
+
+  .column-body {
+    padding: 8px;
+    flex: 1;
+    min-height: 80px;
+    transition: background 0.2s;
+  }
+  .column-body.drag-over { background: rgba(0,0,0,0.02); }
+
+  /* Card */
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    margin-bottom: 5px;
+    cursor: grab;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+  }
+  .card.dragging { opacity: 0.4; transform: rotate(2deg); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .card-category {
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cat-work { background: rgba(139,92,246,0.15); color: var(--cat-work); }
+  .cat-personal { background: rgba(236,72,153,0.15); color: var(--cat-personal); }
+  .cat-study { background: rgba(6,182,212,0.15); color: var(--cat-study); }
+  .cat-health { background: rgba(249,115,22,0.15); color: var(--cat-health); }
+  .cat-kids { background: rgba(46,125,50,0.15); color: var(--cat-kids); }
+  .cat-other { background: rgba(100,116,139,0.15); color: var(--cat-other); }
+
+  /* Card background by category */
+  .card.card-cat-work { background: #c8bde6; border-color: #a99ad0; }
+  .card.card-cat-personal { background: #e4b5c4; border-color: #d098aa; }
+  .card.card-cat-study { background: #a0d4db; border-color: #80bac2; }
+  .card.card-cat-health { background: #ddc0a0; border-color: #c8a880; }
+  .card.card-cat-kids { background: #bcd898; border-color: #a2c478; }
+  .card.card-cat-other { background: #b8bec5; border-color: #98a0a8; }
+
+  .card-actions { display: flex; gap: 2px; align-items: center; }
+  .card-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 1px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    line-height: 1;
+  }
+  .card:hover .card-btn { opacity: 1; }
+  .card-btn.pin-btn:hover { color: var(--todo); background: rgba(245,158,11,0.1); }
+  .card-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+  .card.pinned .pin-btn { opacity: 1; color: var(--todo); }
+  .card .pin-icon { font-size: 0.78rem; }
+
+  /* Drop indicator */
+  .drop-indicator {
+    height: 3px;
+    background: #6366f1;
+    border-radius: 2px;
+    margin: -2px 0;
+    pointer-events: none;
+  }
+
+  .card-body { display: flex; align-items: flex-start; gap: 6px; }
+  .card-body-left { flex: 1; min-width: 0; }
+  .card-title { font-size: 0.8rem; font-weight: 600; line-height: 1.4; word-break: break-word; }
+  .card-desc { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; word-break: break-word; }
+
+  .column[data-status="done"] .card-title { text-decoration: line-through; color: var(--text-muted); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 90%;
+    max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    animation: modalIn 0.2s ease-out;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(16px) scale(0.97); } }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 20px; font-weight: 700; }
+  .modal label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .modal label:first-of-type { margin-top: 0; }
+  .modal input, .modal textarea, .modal select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.92rem;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  .modal input:focus, .modal textarea:focus, .modal select:focus { outline: none; border-color: #6366f1; }
+  .modal textarea { resize: vertical; min-height: 60px; }
+  .modal select option { background: var(--surface); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  .modal-actions button {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s;
+  }
+  .modal-actions button:active { transform: scale(0.97); }
+  .btn-cancel { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border) !important; }
+  .btn-cancel:hover { background: var(--surface-hover); }
+  .btn-submit { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+  .btn-submit:hover { box-shadow: 0 4px 16px rgba(99,102,241,0.4); }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    padding: 0 28px;
+    padding-top: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: all 0.15s;
+  }
+  .filter-chip:hover { border-color: rgba(0,0,0,0.2); }
+  .filter-chip.active { background: rgba(99,102,241,0.15); border-color: #6366f1; color: #4f46e5; }
+
+  .empty-state { text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 30px 10px; opacity: 0.6; }
+
+  .celebration { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 300; }
+
+  @media (max-width: 700px) {
+    .board { flex-direction: column; padding: 12px; }
+    .column { max-width: 100%; min-width: auto; }
+    header { padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
+    .header-stats { display: none; }
+    .filter-bar { padding: 12px 12px 0; }
+    .repeat-section { margin: 8px 12px 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Kanban Board</h1>
+  <div class="header-stats" id="stats"></div>
+  <div class="header-buttons">
+    <button class="btn-add" onclick="openModal()">+ New Task</button>
+  </div>
+</header>
+
+<div class="filter-bar" id="filterBar">
+  <span class="filter-chip active" data-cat="all" onclick="setFilter('all')">All</span>
+  <span class="filter-chip" data-cat="work" onclick="setFilter('work')">Work</span>
+  <span class="filter-chip" data-cat="personal" onclick="setFilter('personal')">Personal</span>
+  <span class="filter-chip" data-cat="study" onclick="setFilter('study')">Study</span>
+  <span class="filter-chip" data-cat="health" onclick="setFilter('health')">Health</span>
+  <span class="filter-chip" data-cat="kids" onclick="setFilter('kids')">Kids</span>
+  <span class="filter-chip" data-cat="other" onclick="setFilter('other')">Other</span>
+</div>
+
+<!-- Repeat Templates -->
+<div class="repeat-section">
+  <div class="repeat-header" onclick="toggleRepeatSection()">
+    <div class="repeat-header-left">
+      <span class="repeat-toggle" id="repeatToggle">&#x25B6;</span>
+      &#x1F501; 毎日の繰り返しタスク
+      <span id="repeatCount" style="font-weight:400; font-size:0.72rem;"></span>
+    </div>
+  </div>
+  <div class="repeat-body" id="repeatBody">
+    <div class="repeat-items" id="repeatItems"></div>
+    <div class="repeat-add">
+      <input type="text" id="repeatTitle" placeholder="タスク名" maxlength="100">
+      <select id="repeatCat">
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="study">Study</option>
+        <option value="health">Health</option>
+        <option value="kids">Kids</option>
+        <option value="other">Other</option>
+      </select>
+      <button onclick="addRepeatTemplate()">追加</button>
+    </div>
+    <div class="repeat-hint">ここに登録したタスクは、毎日自動でTodoに追加されます。</div>
+  </div>
+</div>
+
+<div class="board" id="board">
+  <div class="column" data-status="todo">
+    <div class="column-header">
+      <span class="col-label"><span class="col-icon"></span> Todo</span>
+      <span class="col-count" id="count-todo">0</span>
+    </div>
+    <div class="column-body" id="col-todo"></div>
+  </div>
+  <div class="column" data-status="doing">
+    <div class="column-header">
+      <span class="col-label"><span class="col-icon"></span> Doing</span>
+      <span class="col-count" id="count-doing">0</span>
+    </div>
+    <div class="column-body" id="col-doing"></div>
+  </div>
+  <div class="column" data-status="done">
+    <div class="column-header">
+      <span class="col-label"><span class="col-icon"></span> Done</span>
+      <span class="col-count" id="count-done">0</span>
+    </div>
+    <div class="column-body" id="col-done"></div>
+  </div>
+</div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <h2 id="modalTitle">New Task</h2>
+    <label>Title *</label>
+    <input type="text" id="taskTitle" placeholder="What needs to be done?" maxlength="100" autofocus>
+    <label>Description</label>
+    <textarea id="taskDesc" placeholder="Details (optional)" rows="2"></textarea>
+    <label>Category</label>
+    <select id="taskCat">
+      <option value="work">Work</option>
+      <option value="personal">Personal</option>
+      <option value="study">Study</option>
+      <option value="health">Health</option>
+      <option value="kids">Kids</option>
+      <option value="other">Other</option>
+    </select>
+    <label>Status</label>
+    <select id="taskStatus">
+      <option value="todo">Todo</option>
+      <option value="doing">Doing</option>
+      <option value="done">Done</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" id="modalSubmit" onclick="submitTask()">Add Task</button>
+    </div>
+  </div>
+</div>
+
+<canvas class="celebration" id="confetti"></canvas>
+
+<script type="module">
+// ---- Firebase ----
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBadywmMpuz7v6uPaOis85YoTjRAT_yurU",
+  authDomain: "my-kanban-4cafd.firebaseapp.com",
+  projectId: "my-kanban-4cafd",
+  storageBucket: "my-kanban-4cafd.firebasestorage.app",
+  messagingSenderId: "880333494754",
+  appId: "1:880333494754:web:bc10c63e71bbb1c24d81bb"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const tasksCol = collection(db, 'tasks');
+const repeatsCol = collection(db, 'repeats');
+
+// ---- Data ----
+let tasks = [];
+let repeats = [];
+let currentFilter = 'all';
+let editingId = null;
+
+const CAT_LABELS = { work: 'Work', personal: 'Personal', study: 'Study', health: 'Health', kids: 'Kids', other: 'Other' };
+
+// Firestore helpers
+async function saveTask(task) { const { id, ...data } = task; await setDoc(doc(db, 'tasks', id), data); }
+async function removeTask(id) { await deleteDoc(doc(db, 'tasks', id)); }
+async function saveRepeat(r) { const { id, ...data } = r; await setDoc(doc(db, 'repeats', id), data); }
+async function removeRepeat(id) { await deleteDoc(doc(db, 'repeats', id)); }
+async function saveAllTasks() { for (const t of tasks) await saveTask(t); }
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function getTopOrder(status) {
+  const colTasks = tasks.filter(t => t.status === status);
+  if (colTasks.length === 0) return 0;
+  return Math.min(...colTasks.map(t => t.order ?? 999999)) - 1;
+}
+function esc(s) { const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
+function getDateStr(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ---- Render Board ----
+function sortTasks(list) {
+  return list.slice().sort((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    const oa = a.order ?? 999999;
+    const ob = b.order ?? 999999;
+    if (oa !== ob) return oa - ob;
+    return a.created - b.created;
+  });
+}
+
+function render() {
+  ['todo','doing','done'].forEach(status => {
+    const col = document.getElementById('col-' + status);
+    let visible;
+    if (status === 'done') {
+      visible = tasks.filter(t => t.status === 'done')
+        .sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0))
+        .slice(0, 9);
+    } else {
+      visible = tasks.filter(t => t.status === status);
+    }
+    const filtered = sortTasks(visible.filter(t => currentFilter === 'all' || t.category === currentFilter));
+    const count = visible.length;
+    document.getElementById('count-' + status).textContent = count;
+
+    if (filtered.length === 0) {
+      col.innerHTML = `<div class="empty-state">${status === 'todo' ? 'No tasks yet' : status === 'doing' ? 'Nothing in progress' : 'Nothing completed'}</div>`;
+      return;
+    }
+    col.innerHTML = filtered.map(t => `
+      <div class="card card-cat-${t.category} ${t.pinned ? 'pinned' : ''}" draggable="true" data-id="${t.id}"
+           ondragstart="onDragStart(event)" ondragend="onDragEnd(event)" ondblclick="openEdit('${t.id}')">
+        <div class="card-top">
+          <span class="card-category cat-${t.category}">${CAT_LABELS[t.category]}</span>
+          <div class="card-actions">
+            <button class="card-btn pin-btn" onclick="togglePin('${t.id}')" title="${t.pinned ? 'Unpin' : 'Pin'}"><span class="pin-icon">&#x1F4CC;</span></button>
+            <button class="card-btn delete-btn" onclick="deleteTask('${t.id}')" title="Delete">&#x2715;</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-body-left">
+            <div class="card-title">${esc(t.title)}</div>
+            ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  });
+
+  // Stats
+  const total = tasks.length;
+  const doneCount = tasks.filter(t => t.status === 'done').length;
+  const doingCount = tasks.filter(t => t.status === 'doing').length;
+  const todoCount = tasks.filter(t => t.status === 'todo').length;
+  document.getElementById('stats').innerHTML = `
+    <span><span class="stat-dot" style="background:var(--todo)"></span> ${todoCount} Todo</span>
+    <span><span class="stat-dot" style="background:var(--doing)"></span> ${doingCount} Doing</span>
+    <span><span class="stat-dot" style="background:var(--done)"></span> ${doneCount} Done</span>
+    ${total > 0 ? `<span style="color:#10b981;font-weight:600;">${Math.round(doneCount/total*100)}% Complete</span>` : ''}
+  `;
+}
+
+// ---- Render Repeat Templates ----
+function renderRepeats() {
+  const container = document.getElementById('repeatItems');
+  document.getElementById('repeatCount').textContent = repeats.length > 0 ? `(${repeats.length}件)` : '';
+  if (repeats.length === 0) {
+    container.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">テンプレートはまだありません</span>';
+    return;
+  }
+  container.innerHTML = repeats.map(r => `
+    <div class="repeat-item">
+      <span class="ri-cat cat-${r.category}">${CAT_LABELS[r.category]}</span>
+      <span class="ri-title">${esc(r.title)}</span>
+      <button class="ri-delete" onclick="deleteRepeatTemplate('${r.id}')" title="削除">&#x2715;</button>
+    </div>
+  `).join('');
+}
+
+// ---- Repeat Section Toggle ----
+function toggleRepeatSection() {
+  const body = document.getElementById('repeatBody');
+  const toggle = document.getElementById('repeatToggle');
+  const isOpen = body.classList.toggle('open');
+  toggle.classList.toggle('open', isOpen);
+}
+
+// ---- Add/Delete Repeat Template ----
+async function addRepeatTemplate() {
+  const input = document.getElementById('repeatTitle');
+  const title = input.value.trim();
+  if (!title) { input.focus(); return; }
+  const category = document.getElementById('repeatCat').value;
+  const r = { id: genId(), title, category };
+  repeats.push(r);
+  renderRepeats();
+  await saveRepeat(r);
+  input.value = '';
+  input.focus();
+}
+
+async function deleteRepeatTemplate(id) {
+  repeats = repeats.filter(r => r.id !== id);
+  renderRepeats();
+  await removeRepeat(id);
+}
+
+// ---- Process Daily Repeats ----
+async function processRepeats() {
+  const today = getDateStr(Date.now());
+
+  for (const rt of repeats) {
+    const alreadyExists = tasks.some(t => t.repeatSourceId === rt.id && t.repeatDate === today);
+    if (alreadyExists) continue;
+
+    const newTask = {
+      id: genId(),
+      title: rt.title,
+      desc: '',
+      category: rt.category,
+      status: 'todo',
+      created: Date.now(),
+      pinned: false,
+      order: getTopOrder('todo'),
+      repeatSourceId: rt.id,
+      repeatDate: today,
+    };
+    tasks.push(newTask);
+    await saveTask(newTask);
+  }
+}
+
+// ---- Drag & Drop ----
+let dragId = null;
+
+function onDragStart(e) {
+  const card = e.target.closest('.card');
+  dragId = card.dataset.id;
+  card.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragId);
+}
+function onDragEnd(e) {
+  const card = e.target.closest('.card');
+  if (card) card.classList.remove('dragging');
+  document.querySelectorAll('.column-body').forEach(c => c.classList.remove('drag-over'));
+  document.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+  dragId = null;
+}
+
+function getDropIndex(col, y) {
+  const cards = [...col.querySelectorAll('.card:not(.dragging)')];
+  for (let i = 0; i < cards.length; i++) {
+    const rect = cards[i].getBoundingClientRect();
+    if (y < rect.top + rect.height / 2) return i;
+  }
+  return cards.length;
+}
+
+document.querySelectorAll('.column-body').forEach(col => {
+  col.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    col.classList.add('drag-over');
+    col.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+    const idx = getDropIndex(col, e.clientY);
+    const cards = [...col.querySelectorAll('.card:not(.dragging)')];
+    const indicator = document.createElement('div');
+    indicator.className = 'drop-indicator';
+    if (idx < cards.length) col.insertBefore(indicator, cards[idx]);
+    else col.appendChild(indicator);
+  });
+  col.addEventListener('dragleave', e => {
+    if (!col.contains(e.relatedTarget)) {
+      col.classList.remove('drag-over');
+      col.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+    }
+  });
+  col.addEventListener('drop', async e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    col.querySelectorAll('.drop-indicator').forEach(el => el.remove());
+    if (!dragId) return;
+    const newStatus = col.id.replace('col-', '');
+    const task = tasks.find(t => t.id === dragId);
+    if (!task) return;
+    const wasNotDone = task.status !== 'done';
+    task.status = newStatus;
+    if (newStatus === 'done') { task.pinned = false; task.doneAt = Date.now(); }
+    if (newStatus !== 'done') { task.doneAt = null; }
+    const dropIdx = getDropIndex(col, e.clientY);
+    const colTasks = sortTasks(tasks.filter(t => t.status === newStatus && t.id !== dragId && (currentFilter === 'all' || t.category === currentFilter)));
+    const reordered = [...colTasks];
+    reordered.splice(dropIdx, 0, task);
+    reordered.forEach((t, i) => { t.order = i; });
+    render();
+    for (const t of reordered) await saveTask(t);
+    if (newStatus === 'done' && wasNotDone) celebrate();
+  });
+});
+
+// ---- Modal ----
+function openModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'New Task';
+  document.getElementById('modalSubmit').textContent = 'Add Task';
+  document.getElementById('taskTitle').value = '';
+  document.getElementById('taskDesc').value = '';
+  document.getElementById('taskCat').value = 'work';
+  document.getElementById('taskStatus').value = 'todo';
+  document.getElementById('modal').classList.add('active');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
+}
+
+function openEdit(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  editingId = id;
+  document.getElementById('modalTitle').textContent = 'Edit Task';
+  document.getElementById('modalSubmit').textContent = 'Save';
+  document.getElementById('taskTitle').value = task.title;
+  document.getElementById('taskDesc').value = task.desc || '';
+  document.getElementById('taskCat').value = task.category;
+  document.getElementById('taskStatus').value = task.status;
+  document.getElementById('modal').classList.add('active');
+  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('active'); }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+async function submitTask() {
+  const title = document.getElementById('taskTitle').value.trim();
+  if (!title) { document.getElementById('taskTitle').focus(); return; }
+  const desc = document.getElementById('taskDesc').value.trim();
+  const cat = document.getElementById('taskCat').value;
+  const status = document.getElementById('taskStatus').value;
+
+  if (editingId) {
+    const task = tasks.find(t => t.id === editingId);
+    if (task) {
+      const wasNotDone = task.status !== 'done';
+      task.title = title;
+      task.desc = desc;
+      task.category = cat;
+      task.status = status;
+      if (status === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
+      if (status !== 'done') { task.doneAt = null; }
+      render();
+      await saveTask(task);
+      if (status === 'done' && wasNotDone) celebrate();
+    }
+  } else {
+    const task = { id: genId(), title, desc, category: cat, status, created: Date.now(), pinned: false, order: getTopOrder(status) };
+    tasks.push(task);
+    render();
+    await saveTask(task);
+    if (status === 'done') celebrate();
+  }
+  closeModal();
+}
+
+async function togglePin(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  task.pinned = !task.pinned;
+  render();
+  await saveTask(task);
+}
+
+async function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  render();
+  await removeTask(id);
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && document.getElementById('modal').classList.contains('active')) {
+    if (document.activeElement.tagName !== 'TEXTAREA') submitTask();
+  }
+});
+
+// Repeat input Enter key
+document.getElementById('repeatTitle').addEventListener('keydown', e => {
+  if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === 'Enter') addRepeatTemplate();
+});
+
+// ---- Filter ----
+function setFilter(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+  render();
+}
+
+// ---- Confetti ----
+function celebrate() {
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#f59e0b','#3b82f6','#10b981','#8b5cf6','#ec4899','#ef4444','#06b6d4'];
+  const particles = [];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width, y: -20 - Math.random() * 100,
+      w: 6 + Math.random() * 6, h: 4 + Math.random() * 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: (Math.random() - 0.5) * 4, vy: 2 + Math.random() * 4,
+      rot: Math.random() * Math.PI * 2, vr: (Math.random() - 0.5) * 0.15, life: 1
+    });
+  }
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.rot += p.vr; p.life -= 0.008;
+      if (p.life <= 0) return;
+      alive = true;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore();
+    });
+    if (alive) requestAnimationFrame(draw);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  draw();
+}
+
+// ---- Make functions global ----
+window.openModal = openModal;
+window.openEdit = openEdit;
+window.closeModal = closeModal;
+window.closeModalOutside = closeModalOutside;
+window.submitTask = submitTask;
+window.togglePin = togglePin;
+window.deleteTask = deleteTask;
+window.setFilter = setFilter;
+window.onDragStart = onDragStart;
+window.onDragEnd = onDragEnd;
+window.toggleRepeatSection = toggleRepeatSection;
+window.addRepeatTemplate = addRepeatTemplate;
+window.deleteRepeatTemplate = deleteRepeatTemplate;
+
+// ---- Init ----
+const defaultTasks = [
+  { id: genId(), title: '服捨てる', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'たいろーさん講座、Claude', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'ラッピング', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '趣味探し', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'スポーツ観戦', desc: '', category: 'health', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '習字', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '音楽', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '3Dプリンター', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '現職の道筋', desc: '', category: 'work', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'りのちゃん誕生日のごはん', desc: 'カレー、マカロニサラダ、ケーキ', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'プロボノ撤退', desc: '', category: 'work', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '家探し', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '電気工事士', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '春休み遊びにいくところ', desc: '千葉市科学、茅ヶ崎', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'ダンス', desc: '', category: 'health', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'お食い初め誕生日会　服', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '家の事', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '中学受験について調べる', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '買い物', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '献立', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'みっちーを呼ぶ', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '片付け', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '夕飯つくる', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: '保育園', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+];
+
+async function init() {
+  // Load tasks
+  const taskSnap = await getDocs(tasksCol);
+  if (taskSnap.empty) {
+    const localData = JSON.parse(localStorage.getItem('kanban_tasks') || '[]');
+    if (localData.length > 0) {
+      tasks = localData.map(t => ({ ...t, pinned: t.pinned ?? false, order: t.order ?? 999999 }));
+    } else {
+      tasks = defaultTasks;
+    }
+    render();
+    await saveAllTasks();
+  }
+
+  // Load repeats
+  const repeatSnap = await getDocs(repeatsCol);
+  repeats = repeatSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderRepeats();
+
+  // Real-time listeners
+  let firstLoad = true;
+  onSnapshot(tasksCol, async (snapshot) => {
+    tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+    if (firstLoad) {
+      firstLoad = false;
+      await processRepeats();
+      render();
+    }
+  });
+
+  onSnapshot(repeatsCol, (snapshot) => {
+    repeats = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderRepeats();
+  });
+}
+
+init();
+</script>
+</body>
+</html>
