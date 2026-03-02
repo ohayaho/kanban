@@ -1007,7 +1007,12 @@ function openSheet(id = null) {
   setTimeout(() => document.getElementById('fTitle').focus(), 300);
 }
 function closeSheet() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
-function closeSheetOutside(e) { if (e.target === document.getElementById('overlay')) closeSheet(); }
+let imeComposing = false;
+function closeSheetOutside(e) {
+  if (e.target !== document.getElementById('overlay')) return;
+  if (imeComposing) return;
+  closeSheet();
+}
 
 function selCat(c) {
   selectedCat = c;
@@ -1302,6 +1307,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) {
     if (document.activeElement.tagName !== 'TEXTAREA') submitTask();
   }
+});
+
+// ── IME composition tracking (日本語入力中はシートを閉じない) ──
+['fTitle', 'fDesc'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('compositionstart', () => { imeComposing = true; });
+  el.addEventListener('compositionend',   () => { setTimeout(() => { imeComposing = false; }, 300); });
 });
 
 // ── Confetti ──
