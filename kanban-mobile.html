@@ -1303,6 +1303,7 @@ contentEl.addEventListener('touchend', e => {
 // ── Keyboard ──
 document.addEventListener('keydown', e => {
   if (e.isComposing || e.keyCode === 229) return;
+  if (imeComposing) return; // 日本語確定直後のEnterでフォーム送信されないよう
   if (e.key === 'Escape') closeSheet();
   if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) {
     if (document.activeElement.tagName !== 'TEXTAREA') submitTask();
