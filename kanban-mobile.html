@@ -1007,10 +1007,7 @@ function openSheet(id = null) {
   setTimeout(() => document.getElementById('fTitle').focus(), 300);
 }
 function closeSheet() {
-  const overlay = document.getElementById('overlay');
-  overlay.classList.remove('open');
-  overlay.style.height = '';
-  overlay.style.top = '';
+  document.getElementById('overlay').classList.remove('open');
   editingId = null;
 }
 function closeSheetOutside(e) {
@@ -1308,26 +1305,22 @@ contentEl.addEventListener('touchend', e => {
 }, { passive: true });
 
 // ── Keyboard ──
-// ※ Enterキーでの送信は日本語IMEの確定キーと衝突するため廃止。
-//    追加/保存ボタンをタップして送信してください。
 document.addEventListener('keydown', e => {
   if (e.isComposing || e.keyCode === 229) return;
-  if (e.key === 'Escape') closeSheet();
-});
+  if (e.key === 'Escape') { closeSheet(); return; }
 
-// ── iOS キーボード対応 ──
-// user-scalable=no 廃止後も、キーボード表示時にオーバーレイをvisualViewportに合わせる
-function adjustOverlayForKeyboard() {
-  const overlay = document.getElementById('overlay');
-  if (!overlay.classList.contains('open')) return;
-  const vv = window.visualViewport;
-  overlay.style.height = vv.height + 'px';
-  overlay.style.top    = vv.offsetTop + 'px';
-}
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', adjustOverlayForKeyboard);
-  window.visualViewport.addEventListener('scroll', adjustOverlayForKeyboard);
-}
+  // iOSでは「確定」キーがEnterとして届き、e.isComposingが常にfalseになるバグがある。
+  // blur() → focus() で強制的にIMEを確定しつつ、キーボード・フォーカスを維持する。
+  if (e.key === 'Enter') {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')
+        && document.getElementById('overlay').classList.contains('open')) {
+      e.preventDefault();
+      active.blur();
+      active.focus();
+    }
+  }
+});
 
 // ── Confetti ──
 function celebrate() {
