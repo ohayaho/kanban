@@ -768,7 +768,7 @@ body.tab-done  { background: #f0fdf4; }
     <h2 id="sheetTitle">新しいタスク</h2>
     <div class="field">
       <label>タイトル *</label>
-      <input type="text" id="fTitle" placeholder="何をしますか？" maxlength="100">
+      <input type="text" id="fTitle" placeholder="何をしますか？" maxlength="100" enterkeyhint="done">
     </div>
     <div class="field">
       <label>メモ</label>
@@ -1007,11 +1007,9 @@ function openSheet(id = null) {
   setTimeout(() => document.getElementById('fTitle').focus(), 300);
 }
 function closeSheet() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
-let imeComposing = false;
 function closeSheetOutside(e) {
   if (e.target !== document.getElementById('overlay')) return;
-  if (imeComposing) return;
-  // 入力欄にフォーカスがある場合はキーボードを閉じるだけ（シートは閉じない）
+  // 入力欄にフォーカスがある場合はキーボードを閉じるだけ（IME確定中でも安全）
   const active = document.activeElement;
   if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
     active.blur();
@@ -1307,20 +1305,11 @@ contentEl.addEventListener('touchend', e => {
 }, { passive: true });
 
 // ── Keyboard ──
+// ※ Enterキーでの送信は日本語IMEの確定キーと衝突するため廃止。
+//    追加/保存ボタンをタップして送信してください。
 document.addEventListener('keydown', e => {
   if (e.isComposing || e.keyCode === 229) return;
-  if (imeComposing) return; // 日本語確定直後のEnterでフォーム送信されないよう
   if (e.key === 'Escape') closeSheet();
-  if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('open')) {
-    if (document.activeElement.tagName !== 'TEXTAREA') submitTask();
-  }
-});
-
-// ── IME composition tracking (日本語入力中はシートを閉じない) ──
-['fTitle', 'fDesc'].forEach(id => {
-  const el = document.getElementById(id);
-  el.addEventListener('compositionstart', () => { imeComposing = true; });
-  el.addEventListener('compositionend',   () => { setTimeout(() => { imeComposing = false; }, 300); });
 });
 
 // ── Confetti ──
