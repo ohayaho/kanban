@@ -405,7 +405,7 @@ body {
   border: 1.5px solid var(--border);
   border-radius: 10px;
   color: var(--text);
-  font-size: 0.92rem;
+  font-size: 1rem; /* 16px以上にしないとiOSが自動ズームしてIMEが壊れる */
   font-family: inherit;
   outline: none;
   transition: border-color 0.15s;
@@ -1011,6 +1011,12 @@ let imeComposing = false;
 function closeSheetOutside(e) {
   if (e.target !== document.getElementById('overlay')) return;
   if (imeComposing) return;
+  // 入力欄にフォーカスがある場合はキーボードを閉じるだけ（シートは閉じない）
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+    active.blur();
+    return;
+  }
   closeSheet();
 }
 
