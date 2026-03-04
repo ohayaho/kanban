@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Kanban</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%236366f1'/><stop offset='100%25' stop-color='%238b5cf6'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(%23g)'/><rect x='10' y='14' width='10' height='36' rx='3' fill='white' opacity='0.9'/><rect x='27' y='14' width='10' height='24' rx='3' fill='white' opacity='0.7'/><rect x='44' y='14' width='10' height='16' rx='3' fill='white' opacity='0.5'/></svg>">
 <style>
@@ -768,7 +768,7 @@ body.tab-done  { background: #f0fdf4; }
     <h2 id="sheetTitle">新しいタスク</h2>
     <div class="field">
       <label>タイトル *</label>
-      <input type="text" id="fTitle" placeholder="何をしますか？" maxlength="100" enterkeyhint="done">
+      <input type="text" id="fTitle" placeholder="何をしますか？" maxlength="100">
     </div>
     <div class="field">
       <label>メモ</label>
@@ -1006,15 +1006,18 @@ function openSheet(id = null) {
   document.getElementById('overlay').classList.add('open');
   setTimeout(() => document.getElementById('fTitle').focus(), 300);
 }
-function closeSheet() { document.getElementById('overlay').classList.remove('open'); editingId = null; }
+function closeSheet() {
+  const overlay = document.getElementById('overlay');
+  overlay.classList.remove('open');
+  overlay.style.height = '';
+  overlay.style.top = '';
+  editingId = null;
+}
 function closeSheetOutside(e) {
   if (e.target !== document.getElementById('overlay')) return;
-  // 入力欄にフォーカスがある場合はキーボードを閉じるだけ（IME確定中でも安全）
+  // 入力欄フォーカス中は何もしない（IME変換がキャンセルされるのを防ぐ）
   const active = document.activeElement;
-  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-    active.blur();
-    return;
-  }
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
   closeSheet();
 }
 
@@ -1311,6 +1314,20 @@ document.addEventListener('keydown', e => {
   if (e.isComposing || e.keyCode === 229) return;
   if (e.key === 'Escape') closeSheet();
 });
+
+// ── iOS キーボード対応 ──
+// user-scalable=no 廃止後も、キーボード表示時にオーバーレイをvisualViewportに合わせる
+function adjustOverlayForKeyboard() {
+  const overlay = document.getElementById('overlay');
+  if (!overlay.classList.contains('open')) return;
+  const vv = window.visualViewport;
+  overlay.style.height = vv.height + 'px';
+  overlay.style.top    = vv.offsetTop + 'px';
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', adjustOverlayForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustOverlayForKeyboard);
+}
 
 // ── Confetti ──
 function celebrate() {
