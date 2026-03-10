@@ -18,8 +18,8 @@
     --done: #10b981;
     --cat-work: #8b5cf6;
     --cat-daily: #0891b2;
+    --cat-personal: #ec4899;
     --cat-study: #0e7490;
-    --cat-health: #f97316;
     --cat-kids: #2e7d32;
     --cat-other: #64748b;
     --radius: 10px;
@@ -272,16 +272,16 @@
   }
   .cat-work { background: rgba(139,92,246,0.15); color: var(--cat-work); }
   .cat-daily { background: rgba(8,145,178,0.15); color: var(--cat-daily); }
+  .cat-personal { background: rgba(236,72,153,0.15); color: var(--cat-personal); }
   .cat-study { background: rgba(6,182,212,0.15); color: var(--cat-study); }
-  .cat-health { background: rgba(249,115,22,0.15); color: var(--cat-health); }
   .cat-kids { background: rgba(46,125,50,0.15); color: var(--cat-kids); }
   .cat-other { background: rgba(100,116,139,0.15); color: var(--cat-other); }
 
   /* Card background by category */
   .card.card-cat-work { background: #c8bde6; border-color: #a99ad0; }
   .card.card-cat-daily { background: #a0d4e4; border-color: #7bbfcf; }
+  .card.card-cat-personal { background: #f5c0da; border-color: #e898bf; }
   .card.card-cat-study { background: #a0d4db; border-color: #80bac2; }
-  .card.card-cat-health { background: #ddc0a0; border-color: #c8a880; }
   .card.card-cat-kids { background: #bcd898; border-color: #a2c478; }
   .card.card-cat-other { background: #b8bec5; border-color: #98a0a8; }
 
@@ -432,9 +432,9 @@
 <div class="filter-bar" id="filterBar">
   <span class="filter-chip active" data-cat="all" onclick="setFilter('all')">All</span>
   <span class="filter-chip" data-cat="daily" onclick="setFilter('daily')">Daily</span>
+  <span class="filter-chip" data-cat="personal" onclick="setFilter('personal')">Personal</span>
   <span class="filter-chip" data-cat="work" onclick="setFilter('work')">Work</span>
   <span class="filter-chip" data-cat="study" onclick="setFilter('study')">Study</span>
-  <span class="filter-chip" data-cat="health" onclick="setFilter('health')">Health</span>
   <span class="filter-chip" data-cat="kids" onclick="setFilter('kids')">Kids</span>
   <span class="filter-chip" data-cat="other" onclick="setFilter('other')">Other</span>
 </div>
@@ -453,9 +453,10 @@
     <div class="repeat-add">
       <input type="text" id="repeatTitle" placeholder="タスク名" maxlength="100">
       <select id="repeatCat">
+        <option value="daily">Daily</option>
+        <option value="personal">Personal</option>
         <option value="work">Work</option>
         <option value="study">Study</option>
-        <option value="health">Health</option>
         <option value="kids">Kids</option>
         <option value="other">Other</option>
       </select>
@@ -500,9 +501,9 @@
     <label>Category</label>
     <select id="taskCat">
       <option value="daily">Daily</option>
+      <option value="personal">Personal</option>
       <option value="work">Work</option>
       <option value="study">Study</option>
-      <option value="health">Health</option>
       <option value="kids">Kids</option>
       <option value="other">Other</option>
     </select>
@@ -546,7 +547,7 @@ let repeats = [];
 let currentFilter = 'all';
 let editingId = null;
 
-const CAT_LABELS = { daily: 'Daily', work: 'Work', study: 'Study', health: 'Health', kids: 'Kids', other: 'Other' };
+const CAT_LABELS = { daily: 'Daily', personal: 'Personal', work: 'Work', study: 'Study', kids: 'Kids', other: 'Other' };
 
 // Firestore helpers
 async function saveTask(task) { const { id, ...data } = task; await setDoc(doc(db, 'tasks', id), data); }
@@ -922,7 +923,7 @@ const defaultTasks = [
   { id: genId(), title: 'たいろーさん講座、Claude', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: 'ラッピング', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '趣味探し', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
-  { id: genId(), title: 'スポーツ観戦', desc: '', category: 'health', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'スポーツ観戦', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '習字', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '音楽', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '3Dプリンター', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
@@ -932,7 +933,7 @@ const defaultTasks = [
   { id: genId(), title: '家探し', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '電気工事士', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '春休み遊びにいくところ', desc: '千葉市科学、茅ヶ崎', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
-  { id: genId(), title: 'ダンス', desc: '', category: 'health', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
+  { id: genId(), title: 'ダンス', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: 'お食い初め誕生日会　服', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '家の事', desc: '', category: 'personal', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
   { id: genId(), title: '中学受験について調べる', desc: '', category: 'study', status: 'todo', created: Date.now(), pinned: false, order: 999999 },
@@ -967,9 +968,9 @@ async function init() {
   let firstLoad = true;
   onSnapshot(tasksCol, async (snapshot) => {
     tasks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    // Migrate: personal → health
-    const toMigrate = tasks.filter(t => t.category === 'personal');
-    for (const t of toMigrate) { t.category = 'health'; await saveTask(t); }
+    // Migrate: health → personal
+    const toMigrate = tasks.filter(t => t.category === 'health');
+    for (const t of toMigrate) { t.category = 'personal'; await saveTask(t); }
     render();
     if (firstLoad) {
       firstLoad = false;
