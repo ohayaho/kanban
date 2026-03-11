@@ -17,9 +17,9 @@
   --done: #10b981;
   --accent: #6366f1;
   --cat-work: #8b5cf6;
-  --cat-daily: #0891b2;
+  --cat-daily: #d97706;
   --cat-study: #0e7490;
-  --cat-health: #f97316;
+  --cat-personal: #ec4899;
   --cat-kids: #2e7d32;
   --cat-other: #64748b;
   --tab-h: 68px;
@@ -221,7 +221,7 @@ body {
 .card.cc-work::before    { background: var(--cat-work); }
 .card.cc-daily::before   { background: var(--cat-daily); }
 .card.cc-study::before   { background: var(--cat-study); }
-.card.cc-health::before  { background: var(--cat-health); }
+.card.cc-personal::before  { background: var(--cat-personal); }
 .card.cc-kids::before    { background: var(--cat-kids); }
 .card.cc-other::before   { background: var(--cat-other); }
 
@@ -268,9 +268,9 @@ body {
   letter-spacing: 0.4px;
 }
 .cb-work    { background: rgba(139,92,246,.12); color: var(--cat-work); }
-.cb-daily   { background: rgba(8,145,178,.12); color: var(--cat-daily); }
+.cb-daily   { background: rgba(217,119,6,.12); color: var(--cat-daily); }
 .cb-study   { background: rgba(14,116,144,.12); color: var(--cat-study); }
-.cb-health  { background: rgba(249,115,22,.12); color: var(--cat-health); }
+.cb-personal  { background: rgba(236,72,153,.12); color: var(--cat-personal); }
 .cb-kids    { background: rgba(46,125,50,.12); color: var(--cat-kids); }
 .cb-other   { background: rgba(100,116,139,.12); color: var(--cat-other); }
 
@@ -428,9 +428,9 @@ body {
   transition: all 0.15s;
 }
 .cat-opt[data-c="work"].sel    { border-color: var(--cat-work);  background: rgba(139,92,246,.1); color: var(--cat-work); }
-.cat-opt[data-c="daily"].sel   { border-color: var(--cat-daily); background: rgba(8,145,178,.1);  color: var(--cat-daily); }
+.cat-opt[data-c="daily"].sel   { border-color: var(--cat-daily); background: rgba(217,119,6,.1);  color: var(--cat-daily); }
 .cat-opt[data-c="study"].sel   { border-color: var(--cat-study); background: rgba(14,116,144,.1); color: var(--cat-study); }
-.cat-opt[data-c="health"].sel  { border-color: var(--cat-health);   background: rgba(249,115,22,.1);  color: var(--cat-health); }
+.cat-opt[data-c="personal"].sel  { border-color: var(--cat-personal);   background: rgba(236,72,153,.1);  color: var(--cat-personal); }
 .cat-opt[data-c="kids"].sel    { border-color: var(--cat-kids);     background: rgba(46,125,50,.1);   color: var(--cat-kids); }
 .cat-opt[data-c="other"].sel   { border-color: var(--cat-other);    background: rgba(100,116,139,.1); color: var(--cat-other); }
 
@@ -721,7 +721,7 @@ body.tab-done  { background: #f0fdf4; }
     <span class="chip"        data-cat="daily"  onclick="setFilter('daily')">Daily</span>
     <span class="chip"        data-cat="work"   onclick="setFilter('work')">Work</span>
     <span class="chip"        data-cat="study"  onclick="setFilter('study')">Study</span>
-    <span class="chip"        data-cat="health" onclick="setFilter('health')">Health</span>
+    <span class="chip"        data-cat="personal" onclick="setFilter('personal')">Personal</span>
     <span class="chip"        data-cat="kids"   onclick="setFilter('kids')">Kids</span>
     <span class="chip"        data-cat="other"  onclick="setFilter('other')">Other</span>
   </div>
@@ -780,7 +780,7 @@ body.tab-done  { background: #f0fdf4; }
         <button class="cat-opt"     data-c="daily"    onclick="selCat('daily')">Daily</button>
         <button class="cat-opt sel" data-c="work"     onclick="selCat('work')">Work</button>
         <button class="cat-opt"     data-c="study"    onclick="selCat('study')">Study</button>
-        <button class="cat-opt"     data-c="health"   onclick="selCat('health')">Health</button>
+        <button class="cat-opt"     data-c="personal"   onclick="selCat('personal')">Personal</button>
         <button class="cat-opt"     data-c="kids"     onclick="selCat('kids')">Kids</button>
         <button class="cat-opt"     data-c="other"    onclick="selCat('other')">Other</button>
       </div>
@@ -851,7 +851,7 @@ let deleteTimer = null;
 const pendingDeletes = new Set(); // 削除待ち（Firestore未削除）のID
 let searchOpen = false;
 
-const CAT = { daily:'Daily', work:'Work', study:'Study', health:'Health', kids:'Kids', other:'Other' };
+const CAT = { daily:'Daily', work:'Work', study:'Study', personal:'Personal', kids:'Kids', other:'Other' };
 const NEXT = { todo:'doing', doing:'done', done:'todo' };
 
 // ── Firebase helpers ──
@@ -1379,9 +1379,9 @@ async function init() {
     tasks = snapshot.docs
       .map(d => ({ id:d.id, ...d.data() }))
       .filter(t => !pendingDeletes.has(t.id)); // 削除待ちのタスクは除外
-    // Migrate: personal → health
-    const toMigrate = tasks.filter(t => t.category === 'personal');
-    for (const t of toMigrate) { t.category = 'health'; await saveTask(t); }
+    // Migrate: health → personal
+    const toMigrate = tasks.filter(t => t.category === 'health');
+    for (const t of toMigrate) { t.category = 'personal'; await saveTask(t); }
     render();
     if (firstLoad) {
       firstLoad = false;
