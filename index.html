@@ -794,7 +794,7 @@ html[data-theme="dark"] {
       <button onclick="handleSignOut()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);">ログアウト</button>
     </div>
     <button id="themeToggleDesktop" onclick="toggleTheme()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:1rem;cursor:pointer;color:var(--text-muted);transition:background 0.15s;" title="ダークモード切替">🌙</button>
-    <button class="btn-add" onclick="desktopOpenModal()">+ New Task</button>
+    <button class="btn-add" onclick="openDesktopModal()">+ New Task</button>
   </div>
 </header>
 
@@ -1123,24 +1123,35 @@ function sortTasks(list) {
   });
 }
 
-// Due badge (desktop)
-function dueBadge(due) {
+// Due badge (mobile=false → desktop div, mobile=true → span)
+function dueBadge(due, mobile = false) {
   if (!due) return '';
   const today = getDateStr(Date.now());
   const diff = (new Date(due) - new Date(today)) / 86400000;
-  if (diff < 0) return `<div class="card-due overdue">⚠ 期限切れ ${due}</div>`;
-  if (diff <= 3) return `<div class="card-due soon">⏰ 期日 ${due}</div>`;
-  return `<div class="card-due ok">📅 ${due}</div>`;
+  const [tag, cls] = mobile ? ['span', 'card-due-m'] : ['div', 'card-due'];
+  if (diff < 0)  return `<${tag} class="${cls} overdue">⚠ 期限切れ ${due}</${tag}>`;
+  if (diff <= 3) return `<${tag} class="${cls} soon">⏰ 期日 ${due}</${tag}>`;
+  return `<${tag} class="${cls} ok">📅 ${due}</${tag}>`;
 }
 
-// Due badge (mobile)
-function dueBadgeMobile(due) {
-  if (!due) return '';
-  const today = getDateStr(Date.now());
-  const diff = (new Date(due) - new Date(today)) / 86400000;
-  if (diff < 0) return `<span class="card-due-m overdue">⚠ 期限切れ ${due}</span>`;
-  if (diff <= 3) return `<span class="card-due-m soon">⏰ 期日 ${due}</span>`;
-  return `<span class="card-due-m ok">📅 ${due}</span>`;
+// Task counts helper
+function getTaskCounts() {
+  return {
+    todo:  tasks.filter(t => t.status === 'todo').length,
+    doing: tasks.filter(t => t.status === 'doing').length,
+    done:  tasks.filter(t => t.status === 'done').length,
+    total: tasks.length,
+  };
+}
+
+// Status transition helper — returns true if celebrate should fire
+function transitionStatus(task, newStatus) {
+  const shouldCelebrate = task.status !== 'done' && newStatus === 'done';
+  task.status = newStatus;
+  task.updatedAt = Date.now();
+  if (newStatus === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
+  else { task.doneAt = null; }
+  return shouldCelebrate;
 }
 
 // ════════════════════════════════════════
@@ -1153,7 +1164,7 @@ let dragId = null;
 function desktopCardHtml(t) {
   return `
     <div class="card card-cat-${t.category} ${t.pinned ? 'pinned' : ''}" draggable="true" data-id="${t.id}"
-         ondragstart="onDragStart(event)" ondragend="onDragEnd(event)" ondblclick="desktopOpenEdit('${t.id}')">
+         ondragstart="onDragStart(event)" ondragend="onDragEnd(event)" ondblclick="openDesktopModal('${t.id}')">
       <div class="card-top">
         <span class="card-category cat-${t.category}">${CAT[t.category]}</span>
         <div class="card-actions">
@@ -1216,10 +1227,7 @@ function desktopRender() {
     `;
   });
 
-  const total = tasks.length;
-  const doneCount = tasks.filter(t => t.status === 'done').length;
-  const doingCount = tasks.filter(t => t.status === 'doing').length;
-  const todoCount = tasks.filter(t => t.status === 'todo').length;
+  const { todo: todoCount, doing: doingCount, done: doneCount } = getTaskCounts();
   const statsEl = document.getElementById('stats');
   if (statsEl) statsEl.innerHTML = `
     <span><span class="stat-dot" style="background:var(--todo)"></span> ${todoCount} Todo</span>
@@ -1231,35 +1239,19 @@ function desktopRender() {
   setupDragDrop();
 }
 
-// ── Desktop Modal ──
-function desktopOpenModal() {
-  desktopEditingId = null;
-  document.getElementById('modalTitle').textContent = 'New Task';
-  document.getElementById('modalSubmit').textContent = 'Add Task';
-  document.getElementById('taskTitle').value = '';
-  document.getElementById('taskDesc').value = '';
-  document.getElementById('taskCat').value = 'work';
-  document.getElementById('taskStatus').value = 'todo';
-  document.getElementById('taskDue').value = '';
-  document.getElementById('taskRepeat').checked = false;
-  document.getElementById('taskAi').checked = false;
-  document.getElementById('desktopModal').classList.add('active');
-  setTimeout(() => document.getElementById('taskTitle').focus(), 100);
-}
-
-function desktopOpenEdit(id) {
-  const task = tasks.find(t => t.id === id);
-  if (!task) return;
+// ── Desktop Modal (new: id=null, edit: id=string) ──
+function openDesktopModal(id = null) {
   desktopEditingId = id;
-  document.getElementById('modalTitle').textContent = 'Edit Task';
-  document.getElementById('modalSubmit').textContent = 'Save';
-  document.getElementById('taskTitle').value = task.title;
-  document.getElementById('taskDesc').value = task.desc || '';
-  document.getElementById('taskCat').value = task.category;
-  document.getElementById('taskStatus').value = task.status;
-  document.getElementById('taskDue').value = task.due || '';
-  document.getElementById('taskRepeat').checked = task.repeat || false;
-  document.getElementById('taskAi').checked = task.ai || false;
+  const task = id ? tasks.find(t => t.id === id) : null;
+  document.getElementById('modalTitle').textContent  = task ? 'Edit Task' : 'New Task';
+  document.getElementById('modalSubmit').textContent = task ? 'Save' : 'Add Task';
+  document.getElementById('taskTitle').value         = task?.title    ?? '';
+  document.getElementById('taskDesc').value          = task?.desc     ?? '';
+  document.getElementById('taskCat').value           = task?.category ?? 'work';
+  document.getElementById('taskStatus').value        = task?.status   ?? 'todo';
+  document.getElementById('taskDue').value           = task?.due      ?? '';
+  document.getElementById('taskRepeat').checked      = task?.repeat   ?? false;
+  document.getElementById('taskAi').checked          = task?.ai       ?? false;
   document.getElementById('desktopModal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -1280,15 +1272,11 @@ async function desktopSubmitTask() {
   if (desktopEditingId) {
     const task = tasks.find(t => t.id === desktopEditingId);
     if (task) {
-      const wasNotDone = task.status !== 'done';
       task.title = title; task.desc = desc; task.category = cat; task.due = due; task.repeat = repeat; task.ai = ai;
-      task.updatedAt = Date.now();
-      if (task.status !== status) { task.status = status; task.updatedAt = Date.now(); }
-      if (status === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
-      if (status !== 'done') { task.doneAt = null; }
+      const shouldCelebrate = transitionStatus(task, status);
       desktopRender();
       await saveTask(task);
-      if (status === 'done' && wasNotDone) celebrate();
+      if (shouldCelebrate) celebrate();
     }
   } else {
     const task = { id:genId(), title, desc, category:cat, status, due, repeat, ai, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
@@ -1355,11 +1343,7 @@ function setupDragDrop() {
       const newStatus = lane.dataset.status;
       const task = tasks.find(t => t.id === dragId);
       if (!task) return;
-      const wasNotDone = task.status !== 'done';
-      task.status = newStatus;
-      task.updatedAt = Date.now();
-      if (newStatus === 'done') { task.pinned = false; task.doneAt = Date.now(); }
-      if (newStatus !== 'done') { task.doneAt = null; }
+      const shouldCelebrate = transitionStatus(task, newStatus);
       // Reorder within same lane (same status, same category group)
       const dropIdx = getDropIndex(lane, e.clientY);
       const laneTasks = sortTasks(tasks.filter(t => t.status === newStatus && t.id !== dragId && (currentFilter === 'all' || t.category === currentFilter)));
@@ -1368,7 +1352,7 @@ function setupDragDrop() {
       reordered.forEach((t, i) => { t.order = i; });
       desktopRender();
       for (const t of reordered) await saveTask(t);
-      if (newStatus === 'done' && wasNotDone) celebrate();
+      if (shouldCelebrate) celebrate();
     });
   });
 }
@@ -1396,16 +1380,40 @@ let deleteTimer = null;
 const pendingDeletes = new Set();
 let searchOpen = false;
 
+// ── Mobile Card HTML ──
+function mobileCardHtml(t) {
+  return `
+    <div class="swipe-wrap" data-id="${t.id}">
+      <div class="card cc-${t.category} ${t.pinned?'pinned':''}" data-id="${t.id}"
+           ontouchstart="swipeStart(event,'${t.id}')"
+           ontouchmove="swipeMove(event,'${t.id}')"
+           ontouchend="swipeEnd(event,'${t.id}')">
+        <div class="card-top">
+          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat?'🔄 ':''}${t.ai?'🤖 ':''}${esc(t.title)}</div>
+          <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
+            <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category==='work'?'個人に移動':'仕事に移動'}">${t.category==='work'?'💼':'👤'}</button>
+            <button class="mobile-lane-btn" onclick="toggleAi('${t.id}')" title="${t.ai?'AIフラグ解除':'AIにお願い'}" style="${t.ai?'color:#6366f1;':''}">🤖</button>
+            <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
+          </div>
+        </div>
+        ${t.desc?`<div class="card-desc">${esc(t.desc)}</div>`:''}
+        <div class="card-footer">
+          <span class="cat-badge cb-${t.category}">${CAT[t.category]}</span>
+          ${dueBadge(t.due, true)}
+          ${t.doneAt&&t.status==='done'?`<span style="font-size:.65rem;color:var(--text-muted)">✓ ${new Date(t.doneAt).toLocaleDateString('ja-JP',{month:'short',day:'numeric'})}</span>`:''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // ── Mobile Render ──
 function mobileRender() {
   const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
   const content = document.getElementById('mobileContent');
   if (!content) return;
 
-  const total = tasks.length;
-  const doneCount  = tasks.filter(t => t.status === 'done').length;
-  const doingCount = tasks.filter(t => t.status === 'doing').length;
-  const todoCount  = tasks.filter(t => t.status === 'todo').length;
+  const { todo: todoCount, doing: doingCount, done: doneCount, total } = getTaskCounts();
   const pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
 
   const progFill  = document.getElementById('progFill');
@@ -1439,29 +1447,6 @@ function mobileRender() {
     return;
   }
 
-  const mobileCardHtml = t => `
-    <div class="swipe-wrap" data-id="${t.id}">
-      <div class="card cc-${t.category} ${t.pinned?'pinned':''}" data-id="${t.id}"
-           ontouchstart="swipeStart(event,'${t.id}')"
-           ontouchmove="swipeMove(event,'${t.id}')"
-           ontouchend="swipeEnd(event,'${t.id}')">
-        <div class="card-top">
-          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat ? '🔄 ' : ''}${t.ai ? '🤖 ' : ''}${esc(t.title)}</div>
-          <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-            <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
-            <button class="mobile-lane-btn" onclick="toggleAi('${t.id}')" title="${t.ai ? 'AIフラグ解除' : 'AIにお願い'}" style="${t.ai ? 'color:#6366f1;' : ''}">🤖</button>
-            <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
-          </div>
-        </div>
-        ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
-        <div class="card-footer">
-          <span class="cat-badge cb-${t.category}">${CAT[t.category]}</span>
-          ${dueBadgeMobile(t.due)}
-          ${t.doneAt && t.status==='done' ? `<span style="font-size:.65rem;color:var(--text-muted)">✓ ${new Date(t.doneAt).toLocaleDateString('ja-JP',{month:'short',day:'numeric'})}</span>` : ''}
-        </div>
-      </div>
-    </div>
-  `;
 
   const personalTasks = filtered.filter(t => t.category !== 'work');
   const workTasks     = filtered.filter(t => t.category === 'work');
@@ -1564,14 +1549,10 @@ async function quickAdvance() {
   if (!editingId) return;
   const task = tasks.find(t => t.id === editingId);
   if (!task) return;
-  const wasNotDone = task.status !== 'done';
-  task.status = NEXT[task.status];
-  task.updatedAt = Date.now();
-  if (task.status === 'done') { task.pinned = false; task.doneAt = Date.now(); }
-  else { task.doneAt = null; }
+  const shouldCelebrate = transitionStatus(task, NEXT[task.status]);
   closeSheet(); mobileRender();
   await saveTask(task);
-  if (task.status === 'done' && wasNotDone) celebrate();
+  if (shouldCelebrate) celebrate();
 }
 
 async function quickUndone() {
@@ -1594,15 +1575,12 @@ async function mobileSubmitTask() {
   if (editingId) {
     const task = tasks.find(t => t.id === editingId);
     if (task) {
-      const wasNotDone = task.status !== 'done';
       task.title = title; task.desc = desc; task.due = due; task.repeat = repeat; task.ai = ai;
-      task.category = selectedCat; task.status = selectedStatus;
-      task.updatedAt = Date.now();
-      if (selectedStatus === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
-      if (selectedStatus !== 'done') { task.doneAt = null; }
+      task.category = selectedCat;
+      const shouldCelebrate = transitionStatus(task, selectedStatus);
       mobileRender();
       await saveTask(task);
-      if (selectedStatus === 'done' && wasNotDone) celebrate();
+      if (shouldCelebrate) celebrate();
     }
   } else {
     const task = { id:genId(), title, desc, due, repeat, ai, category:selectedCat, status:selectedStatus,
@@ -1891,8 +1869,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Expose globals ──
-window.desktopOpenModal      = desktopOpenModal;
-window.desktopOpenEdit       = desktopOpenEdit;
+window.openDesktopModal      = openDesktopModal;
 window.closeModal            = closeModal;
 window.closeModalOutside     = closeModalOutside;
 window.desktopSubmitTask     = desktopSubmitTask;
