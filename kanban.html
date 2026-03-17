@@ -266,9 +266,20 @@
   .swimlane {
     display: flex;
     flex-direction: column;
+    min-height: 0;
+  }
+  .swimlane[data-lane="work"] {
+    flex: 0 0 33%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .swimlane[data-lane="personal"] {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
   }
   .swimlane + .swimlane {
-    border-top: 1px solid var(--border);
+    border-top: 2px solid var(--border);
   }
   .swimlane-header {
     font-size: 0.7rem;
@@ -324,6 +335,7 @@
   .card:hover .card-btn { opacity: 1; }
   .card-btn.pin-btn:hover    { color: var(--todo);  background: rgba(245,158,11,0.1); }
   .card-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+  .card-btn.lane-btn:hover   { color: var(--accent); background: rgba(99,102,241,0.1); }
   .card.pinned .pin-btn { opacity: 1; color: var(--todo); }
   .card .pin-icon { font-size: 0.78rem; }
 
@@ -802,7 +814,7 @@
 
   /* Mobile swimlane */
   .m-swimlane { }
-  .m-swimlane + .m-swimlane { margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .m-swimlane + .m-swimlane { margin-top: 4px; padding-top: 8px; border-top: 2px solid var(--border); }
   .m-swimlane-header {
     font-size: 0.7rem;
     font-weight: 700;
@@ -811,6 +823,16 @@
     letter-spacing: 0.3px;
     user-select: none;
   }
+
+  /* Mobile lane toggle button on cards */
+  .mobile-lane-btn {
+    background: none; border: none;
+    font-size: 0.85rem; cursor: pointer;
+    padding: 2px 4px; border-radius: 6px;
+    color: var(--text-muted); line-height: 1;
+    flex-shrink: 0;
+  }
+  .mobile-lane-btn:active { background: var(--bg); }
 
   /* Repeat tab in tab bar */
   .tab-bar-repeat .tab-dot { background: #a855f7 !important; }
@@ -1174,6 +1196,7 @@ function desktopCardHtml(t) {
         <span class="card-category cat-${t.category}">${CAT[t.category]}</span>
         <div class="card-actions">
           <button class="card-btn pin-btn" onclick="togglePin('${t.id}')" title="${t.pinned ? 'Unpin' : 'Pin'}"><span class="pin-icon">&#x1F4CC;</span></button>
+          <button class="card-btn lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
           <button class="card-btn delete-btn" onclick="deleteTask('${t.id}')" title="Delete">&#x2715;</button>
         </div>
       </div>
@@ -1211,19 +1234,19 @@ function desktopRender() {
     const workTasks     = filtered.filter(t => t.category === 'work');
 
     col.innerHTML = `
-      <div class="swimlane">
-        <div class="swimlane-header">👤 個人</div>
-        <div class="swimlane-body" data-status="${status}" data-lane="personal">
-          ${personalTasks.length > 0
-            ? personalTasks.map(t => desktopCardHtml(t)).join('')
-            : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
-        </div>
-      </div>
-      <div class="swimlane">
+      <div class="swimlane" data-lane="work">
         <div class="swimlane-header">💼 仕事</div>
         <div class="swimlane-body" data-status="${status}" data-lane="work">
           ${workTasks.length > 0
             ? workTasks.map(t => desktopCardHtml(t)).join('')
+            : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
+        </div>
+      </div>
+      <div class="swimlane" data-lane="personal">
+        <div class="swimlane-header">👤 個人</div>
+        <div class="swimlane-body" data-status="${status}" data-lane="personal">
+          ${personalTasks.length > 0
+            ? personalTasks.map(t => desktopCardHtml(t)).join('')
             : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
         </div>
       </div>
@@ -1487,7 +1510,10 @@ function mobileRender() {
            ontouchend="swipeEnd(event,'${t.id}')">
         <div class="card-top">
           <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${esc(t.title)}</div>
-          <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
+          <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
+            <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
+            <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
+          </div>
         </div>
         ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
         <div class="card-footer">
@@ -1503,11 +1529,11 @@ function mobileRender() {
   const workTasks     = filtered.filter(t => t.category === 'work');
 
   let html = '';
-  if (personalTasks.length > 0) {
-    html += `<div class="m-swimlane"><div class="m-swimlane-header">👤 個人</div>${personalTasks.map(mobileCardHtml).join('')}</div>`;
-  }
   if (workTasks.length > 0) {
-    html += `<div class="m-swimlane"><div class="m-swimlane-header">💼 仕事</div>${workTasks.map(mobileCardHtml).join('')}</div>`;
+    html += `<div class="m-swimlane" data-lane="work"><div class="m-swimlane-header">💼 仕事</div>${workTasks.map(mobileCardHtml).join('')}</div>`;
+  }
+  if (personalTasks.length > 0) {
+    html += `<div class="m-swimlane" data-lane="personal"><div class="m-swimlane-header">👤 個人</div>${personalTasks.map(mobileCardHtml).join('')}</div>`;
   }
   content.innerHTML = html;
 }
@@ -1863,6 +1889,16 @@ async function togglePin(id) {
   await saveTask(task);
 }
 
+// ── Toggle Lane (仕事 ↔ 個人) ──
+async function toggleLane(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  task.category = task.category === 'work' ? 'personal' : 'work';
+  task.updatedAt = Date.now();
+  render();
+  await saveTask(task);
+}
+
 // ── Delete Task (desktop) ──
 async function deleteTask(id) {
   tasks = tasks.filter(t => t.id !== id);
@@ -1984,6 +2020,7 @@ window.closeModal            = closeModal;
 window.closeModalOutside     = closeModalOutside;
 window.desktopSubmitTask     = desktopSubmitTask;
 window.togglePin             = togglePin;
+window.toggleLane            = toggleLane;
 window.deleteTask            = deleteTask;
 window.setFilter             = setFilter;
 window.onDragStart           = onDragStart;
