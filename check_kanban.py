@@ -31,6 +31,7 @@ def fetch_tasks():
             "category": sv("category") or "",
             "due": sv("due"),
             "pinned": bv("pinned"),
+            "ai": bv("ai"),
             "updatedAt": int(nv("updatedAt") or nv("created") or 0),
             "created": int(nv("created") or 0),
         })
@@ -72,7 +73,10 @@ def snapshot_summary(tasks):
     done_recent = [t for t in tasks if t["status"] == "done"]
     return f"Todo: {len(todo)}件 / Doing: {len(doing)}件 / Done(累計): {len(done_recent)}件"
 
-def append_log(alerts, summary):
+def check_ai_tasks(tasks):
+    return [t for t in tasks if t.get("ai") and t["status"] == "todo"]
+
+def append_log(alerts, summary, ai_tasks=None):
     now = datetime.now(JST)
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%H:%M")
@@ -84,6 +88,13 @@ def append_log(alerts, summary):
             lines.append(f"- {a}")
     else:
         lines.append("**アラート:** なし")
+
+    if ai_tasks:
+        lines.append("**🤖 AIにお願いタスク（要確認）:**")
+        for t in ai_tasks:
+            lines.append(f"- [{t['category']}] {t['title']}")
+    else:
+        lines.append("**🤖 AIにお願いタスク:** なし")
 
     # ファイルがなければ作成
     if not os.path.exists(LOG_PATH):
@@ -99,4 +110,5 @@ if __name__ == "__main__":
     tasks = fetch_tasks()
     alerts = check(tasks)
     summary = snapshot_summary(tasks)
-    append_log(alerts, summary)
+    ai_tasks = check_ai_tasks(tasks)
+    append_log(alerts, summary, ai_tasks)
