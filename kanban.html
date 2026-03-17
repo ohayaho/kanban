@@ -317,6 +317,10 @@
   .card-body-left { flex: 1; min-width: 0; }
   .card-title { font-size: 0.8rem; font-weight: 600; line-height: 1.4; word-break: break-word; }
   .card-desc { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; word-break: break-word; }
+  .card-due { font-size: 0.65rem; margin-top: 3px; font-weight: 600; }
+  .card-due.overdue { color: #ef4444; }
+  .card-due.soon { color: #f59e0b; }
+  .card-due.ok { color: #64748b; }
 
   .column[data-status="done"] .card-title { text-decoration: line-through; color: var(--text-muted); }
 
@@ -513,6 +517,8 @@
       <option value="doing">Doing</option>
       <option value="done">Done</option>
     </select>
+    <label>期日（任意）</label>
+    <input type="date" id="taskDue">
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-submit" id="modalSubmit" onclick="submitTask()">Add Task</button>
@@ -567,6 +573,14 @@ function getDateStr(ts) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function dueBadge(due) {
+  if (!due) return '';
+  const today = getDateStr(Date.now());
+  const diff = (new Date(due) - new Date(today)) / 86400000;
+  if (diff < 0) return `<div class="card-due overdue">⚠ 期限切れ ${due}</div>`;
+  if (diff <= 3) return `<div class="card-due soon">⏰ 期日 ${due}</div>`;
+  return `<div class="card-due ok">📅 ${due}</div>`;
+}
 
 // ---- Render Board ----
 function sortTasks(list) {
@@ -613,6 +627,7 @@ function render() {
           <div class="card-body-left">
             <div class="card-title">${esc(t.title)}</div>
             ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+            ${dueBadge(t.due)}
           </div>
         </div>
       </div>
@@ -757,6 +772,7 @@ document.querySelectorAll('.column-body').forEach(col => {
     if (!task) return;
     const wasNotDone = task.status !== 'done';
     task.status = newStatus;
+    task.updatedAt = Date.now();
     if (newStatus === 'done') { task.pinned = false; task.doneAt = Date.now(); }
     if (newStatus !== 'done') { task.doneAt = null; }
     const dropIdx = getDropIndex(col, e.clientY);
@@ -779,6 +795,7 @@ function openModal() {
   document.getElementById('taskDesc').value = '';
   document.getElementById('taskCat').value = 'work';
   document.getElementById('taskStatus').value = 'todo';
+  document.getElementById('taskDue').value = '';
   document.getElementById('modal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -793,6 +810,7 @@ function openEdit(id) {
   document.getElementById('taskDesc').value = task.desc || '';
   document.getElementById('taskCat').value = task.category;
   document.getElementById('taskStatus').value = task.status;
+  document.getElementById('taskDue').value = task.due || '';
   document.getElementById('modal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -806,6 +824,7 @@ async function submitTask() {
   const desc = document.getElementById('taskDesc').value.trim();
   const cat = document.getElementById('taskCat').value;
   const status = document.getElementById('taskStatus').value;
+  const due = document.getElementById('taskDue').value || null;
 
   if (editingId) {
     const task = tasks.find(t => t.id === editingId);
@@ -814,7 +833,9 @@ async function submitTask() {
       task.title = title;
       task.desc = desc;
       task.category = cat;
-      task.status = status;
+      task.due = due;
+      task.updatedAt = Date.now();
+      if (task.status !== status) { task.status = status; task.updatedAt = Date.now(); }
       if (status === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
       if (status !== 'done') { task.doneAt = null; }
       render();
@@ -822,7 +843,7 @@ async function submitTask() {
       if (status === 'done' && wasNotDone) celebrate();
     }
   } else {
-    const task = { id: genId(), title, desc, category: cat, status, created: Date.now(), pinned: false, order: getTopOrder(status) };
+    const task = { id: genId(), title, desc, category: cat, status, due, created: Date.now(), updatedAt: Date.now(), pinned: false, order: getTopOrder(status) };
     tasks.push(task);
     render();
     await saveTask(task);
