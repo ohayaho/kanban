@@ -132,87 +132,6 @@
   .filter-chip:hover { border-color: rgba(0,0,0,0.2); }
   .filter-chip.active { background: rgba(99,102,241,0.15); border-color: #6366f1; color: #4f46e5; }
 
-  /* Repeat Templates Section */
-  .repeat-section {
-    margin: 14px 14px 0;
-    background: var(--surface);
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .repeat-header {
-    padding: 8px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-  }
-  .repeat-header:hover { background: var(--bg); }
-  .repeat-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--text-muted);
-  }
-  .repeat-toggle {
-    font-size: 0.7rem;
-    transition: transform 0.2s;
-    display: inline-block;
-  }
-  .repeat-toggle.open { transform: rotate(90deg); }
-  .repeat-body { display: none; padding: 0 14px 12px; }
-  .repeat-body.open { display: block; }
-  .repeat-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-  .repeat-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 0.78rem;
-  }
-  .repeat-item .ri-cat {
-    font-size: 0.62rem;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 3px;
-  }
-  .repeat-item .ri-title { font-weight: 600; }
-  .repeat-item .ri-delete {
-    background: none; border: none;
-    color: var(--text-muted); cursor: pointer;
-    font-size: 0.72rem; padding: 0 2px; line-height: 1;
-  }
-  .repeat-item .ri-delete:hover { color: #ef4444; }
-  .repeat-add { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .repeat-add input {
-    flex: 1; min-width: 120px;
-    padding: 6px 10px;
-    border: 1px solid var(--border); border-radius: 6px;
-    font-size: 0.82rem;
-    background: var(--bg); color: var(--text);
-  }
-  .repeat-add input:focus { outline: none; border-color: #6366f1; }
-  .repeat-add select {
-    padding: 6px 8px;
-    border: 1px solid var(--border); border-radius: 6px;
-    font-size: 0.78rem;
-    background: var(--bg); color: var(--text);
-  }
-  .repeat-add button {
-    padding: 6px 14px;
-    background: #6366f1; color: #fff;
-    border: none; border-radius: 6px;
-    font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  }
-  .repeat-add button:hover { background: #4f46e5; }
-  .repeat-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; }
-
   /* Board */
   .board {
     display: flex;
@@ -422,7 +341,7 @@
   }
 
   /* Hide desktop-only elements on mobile */
-  .desktop-header, .filter-bar, .repeat-section,
+  .desktop-header, .filter-bar,
   .board, .modal-overlay { display: none !important; }
 
   /* ── Mobile Header ── */
@@ -771,47 +690,6 @@
   @keyframes ptrSpin { to { transform: rotate(360deg); } }
   .ptr.loading .ptr-spinner { animation: ptrSpin 0.7s linear infinite; }
 
-  /* Mobile repeat tab */
-  .mobile-repeat-section {
-    padding: 12px;
-  }
-  .mobile-repeat-title {
-    font-size: 0.85rem; font-weight: 700; color: var(--text-muted);
-    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
-  }
-  .mobile-repeat-items { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-  .mobile-repeat-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 12px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem;
-  }
-  .mobile-repeat-item .mri-cat {
-    font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 8px;
-  }
-  .mobile-repeat-item .mri-title { flex: 1; font-weight: 600; }
-  .mobile-repeat-item .mri-delete {
-    background: none; border: none; color: var(--text-muted);
-    cursor: pointer; font-size: 0.85rem; padding: 2px 4px;
-  }
-  .mobile-repeat-item .mri-delete:active { color: #ef4444; }
-  .mobile-repeat-add { display: flex; flex-direction: column; gap: 8px; }
-  .mobile-repeat-add input, .mobile-repeat-add select {
-    width: 100%; padding: 11px 13px;
-    background: var(--bg); border: 1.5px solid var(--border);
-    border-radius: 10px; color: var(--text); font-size: 1rem;
-    font-family: inherit; outline: none; transition: border-color 0.15s;
-    -webkit-appearance: none;
-  }
-  .mobile-repeat-add input:focus, .mobile-repeat-add select:focus { border-color: var(--accent); }
-  .mobile-repeat-add-btn {
-    padding: 13px; background: #6366f1; color: #fff;
-    border: none; border-radius: 10px; font-size: 0.9rem;
-    font-weight: 700; cursor: pointer;
-  }
-  .mobile-repeat-add-btn:active { opacity: 0.85; }
-  .mobile-repeat-hint { font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
-  .mobile-repeat-empty { font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 20px 0; opacity: 0.7; }
-
   /* Mobile swimlane */
   .m-swimlane { }
   .m-swimlane + .m-swimlane { margin-top: 4px; padding-top: 8px; border-top: 2px solid var(--border); }
@@ -833,11 +711,6 @@
     flex-shrink: 0;
   }
   .mobile-lane-btn:active { background: var(--bg); }
-
-  /* Repeat tab in tab bar */
-  .tab-bar-repeat .tab-dot { background: #a855f7 !important; }
-  .tab[data-s="repeat"] .tab-dot { background: #a855f7; }
-  .tab[data-s="repeat"].active .tab-name { color: #a855f7; font-weight: 800; }
 }
 </style>
 </head>
@@ -865,33 +738,6 @@
   <span class="filter-chip"        data-cat="study"    onclick="setFilter('study')">Study</span>
   <span class="filter-chip"        data-cat="kids"     onclick="setFilter('kids')">Kids</span>
   <span class="filter-chip"        data-cat="other"    onclick="setFilter('other')">Other</span>
-</div>
-
-<!-- Desktop Repeat Templates (collapsible) -->
-<div class="repeat-section">
-  <div class="repeat-header" onclick="toggleRepeatSection()">
-    <div class="repeat-header-left">
-      <span class="repeat-toggle" id="repeatToggle">&#x25B6;</span>
-      &#x1F501; 毎日の繰り返しタスク
-      <span id="repeatCount" style="font-weight:400; font-size:0.72rem;"></span>
-    </div>
-  </div>
-  <div class="repeat-body" id="repeatBody">
-    <div class="repeat-items" id="repeatItems"></div>
-    <div class="repeat-add">
-      <input type="text" id="repeatTitle" placeholder="タスク名" maxlength="100">
-      <select id="repeatCat">
-        <option value="daily">Daily</option>
-        <option value="personal">Personal</option>
-        <option value="work">Work</option>
-        <option value="study">Study</option>
-        <option value="kids">Kids</option>
-        <option value="other">Other</option>
-      </select>
-      <button onclick="addRepeatTemplate()">追加</button>
-    </div>
-    <div class="repeat-hint">ここに登録したタスクは、毎日自動でTodoに追加されます。</div>
-  </div>
 </div>
 
 <!-- Desktop Board -->
@@ -944,6 +790,10 @@
     </select>
     <label>期日（任意）</label>
     <input type="date" id="taskDue">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:14px;">
+      <input type="checkbox" id="taskRepeat" style="width:16px;height:16px;accent-color:#6366f1;">
+      <span style="font-size:0.85rem; font-weight:600;">🔄 毎日繰り返す</span>
+    </label>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-submit" id="modalSubmit" onclick="desktopSubmitTask()">Add Task</button>
@@ -1014,10 +864,6 @@
     <span class="tab-name">Done</span>
     <span class="tab-cnt" id="cnt-done">0</span>
   </button>
-  <button class="tab" data-s="repeat" onclick="switchTab('repeat')">
-    <div class="tab-dot"></div>
-    <span class="tab-name">繰返</span>
-  </button>
 </div>
 
 <!-- Mobile FAB -->
@@ -1043,6 +889,10 @@
       <label>期日（任意）</label>
       <input type="date" id="fDue">
     </div>
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:14px; margin-bottom:14px; padding: 0 0;">
+      <input type="checkbox" id="fRepeat" style="width:16px;height:16px;accent-color:#6366f1;">
+      <span style="font-size:0.85rem; font-weight:600;">🔄 毎日繰り返す</span>
+    </label>
     <div class="field">
       <label>カテゴリ</label>
       <div class="cat-grid" id="catGrid">
@@ -1123,7 +973,6 @@ const repeatsCol = collection(db, 'repeats');
 // Shared State
 // ════════════════════════════════════════
 let tasks = [];
-let repeats = [];
 let currentFilter = 'all';
 let editingId = null;
 
@@ -1137,8 +986,6 @@ const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 // ── Firebase helpers ──
 async function saveTask(t) { const {id,...d} = t; await setDoc(doc(db,'tasks',id), d); }
 async function removeTask(id) { await deleteDoc(doc(db,'tasks',id)); }
-async function saveRepeat(r) { const {id,...d} = r; await setDoc(doc(db,'repeats',id), d); }
-async function removeRepeat(id) { await deleteDoc(doc(db,'repeats',id)); }
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function esc(s) { const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
@@ -1202,7 +1049,7 @@ function desktopCardHtml(t) {
       </div>
       <div class="card-body">
         <div class="card-body-left">
-          <div class="card-title">${esc(t.title)}</div>
+          <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${esc(t.title)}</div>
           ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
           ${dueBadge(t.due)}
         </div>
@@ -1268,25 +1115,6 @@ function desktopRender() {
   setupDragDrop();
 }
 
-// ── Desktop Repeat Render ──
-function desktopRenderRepeats() {
-  const container = document.getElementById('repeatItems');
-  if (!container) return;
-  const countEl = document.getElementById('repeatCount');
-  if (countEl) countEl.textContent = repeats.length > 0 ? `(${repeats.length}件)` : '';
-  if (repeats.length === 0) {
-    container.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted);">テンプレートはまだありません</span>';
-    return;
-  }
-  container.innerHTML = repeats.map(r => `
-    <div class="repeat-item">
-      <span class="ri-cat cat-${r.category}">${CAT[r.category]}</span>
-      <span class="ri-title">${esc(r.title)}</span>
-      <button class="ri-delete" onclick="deleteRepeatTemplate('${r.id}')" title="削除">&#x2715;</button>
-    </div>
-  `).join('');
-}
-
 // ── Desktop Modal ──
 function desktopOpenModal() {
   desktopEditingId = null;
@@ -1297,6 +1125,7 @@ function desktopOpenModal() {
   document.getElementById('taskCat').value = 'work';
   document.getElementById('taskStatus').value = 'todo';
   document.getElementById('taskDue').value = '';
+  document.getElementById('taskRepeat').checked = false;
   document.getElementById('desktopModal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -1312,6 +1141,7 @@ function desktopOpenEdit(id) {
   document.getElementById('taskCat').value = task.category;
   document.getElementById('taskStatus').value = task.status;
   document.getElementById('taskDue').value = task.due || '';
+  document.getElementById('taskRepeat').checked = task.repeat || false;
   document.getElementById('desktopModal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -1326,12 +1156,13 @@ async function desktopSubmitTask() {
   const cat = document.getElementById('taskCat').value;
   const status = document.getElementById('taskStatus').value;
   const due = document.getElementById('taskDue').value || null;
+  const repeat = document.getElementById('taskRepeat').checked;
 
   if (desktopEditingId) {
     const task = tasks.find(t => t.id === desktopEditingId);
     if (task) {
       const wasNotDone = task.status !== 'done';
-      task.title = title; task.desc = desc; task.category = cat; task.due = due;
+      task.title = title; task.desc = desc; task.category = cat; task.due = due; task.repeat = repeat;
       task.updatedAt = Date.now();
       if (task.status !== status) { task.status = status; task.updatedAt = Date.now(); }
       if (status === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
@@ -1341,7 +1172,7 @@ async function desktopSubmitTask() {
       if (status === 'done' && wasNotDone) celebrate();
     }
   } else {
-    const task = { id:genId(), title, desc, category:cat, status, due, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
+    const task = { id:genId(), title, desc, category:cat, status, due, repeat, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
     tasks.push(task);
     desktopRender();
     await saveTask(task);
@@ -1434,14 +1265,6 @@ function setFilter(cat) {
   else desktopRender();
 }
 
-// ── Desktop Repeat Section Toggle ──
-function toggleRepeatSection() {
-  const body = document.getElementById('repeatBody');
-  const toggle = document.getElementById('repeatToggle');
-  const isOpen = body.classList.toggle('open');
-  toggle.classList.toggle('open', isOpen);
-}
-
 // ════════════════════════════════════════
 // MOBILE LOGIC
 // ════════════════════════════════════════
@@ -1456,11 +1279,6 @@ let searchOpen = false;
 
 // ── Mobile Render ──
 function mobileRender() {
-  if (currentTab === 'repeat') {
-    mobileRenderRepeats();
-    return;
-  }
-
   const query = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
   const content = document.getElementById('mobileContent');
   if (!content) return;
@@ -1509,7 +1327,7 @@ function mobileRender() {
            ontouchmove="swipeMove(event,'${t.id}')"
            ontouchend="swipeEnd(event,'${t.id}')">
         <div class="card-top">
-          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${esc(t.title)}</div>
+          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat ? '🔄 ' : ''}${esc(t.title)}</div>
           <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
             <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
             <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
@@ -1538,45 +1356,6 @@ function mobileRender() {
   content.innerHTML = html;
 }
 
-// ── Mobile Repeat Render ──
-function mobileRenderRepeats() {
-  const content = document.getElementById('mobileContent');
-  if (!content) return;
-
-  let itemsHtml = '';
-  if (repeats.length === 0) {
-    itemsHtml = '<div class="mobile-repeat-empty">テンプレートはまだありません</div>';
-  } else {
-    itemsHtml = `<div class="mobile-repeat-items">${repeats.map(r => `
-      <div class="mobile-repeat-item">
-        <span class="mri-cat cat-${r.category}">${CAT[r.category]}</span>
-        <span class="mri-title">${esc(r.title)}</span>
-        <button class="mri-delete" onclick="deleteRepeatTemplate('${r.id}')">✕</button>
-      </div>
-    `).join('')}</div>`;
-  }
-
-  content.innerHTML = `
-    <div class="mobile-repeat-section">
-      <div class="mobile-repeat-title">🔁 毎日の繰り返しタスク（${repeats.length}件）</div>
-      ${itemsHtml}
-      <div class="mobile-repeat-add">
-        <input type="text" id="mRepeatTitle" placeholder="タスク名" maxlength="100">
-        <select id="mRepeatCat">
-          <option value="daily">Daily</option>
-          <option value="personal">Personal</option>
-          <option value="work">Work</option>
-          <option value="study">Study</option>
-          <option value="kids">Kids</option>
-          <option value="other">Other</option>
-        </select>
-        <button class="mobile-repeat-add-btn" onclick="addRepeatTemplate()">追加</button>
-      </div>
-      <div class="mobile-repeat-hint">ここに登録したタスクは、毎日自動でTodoに追加されます。</div>
-    </div>
-  `;
-}
-
 // ── Unified Render ──
 function render() {
   if (isMobile()) mobileRender();
@@ -1588,11 +1367,8 @@ function switchTab(s, fromDir = null) {
   currentTab = s;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.s === s));
   document.body.classList.remove('tab-todo', 'tab-doing', 'tab-done');
-  if (s !== 'repeat') document.body.classList.add('tab-' + s);
+  document.body.classList.add('tab-' + s);
   mobileRender();
-
-  const fabBtn = document.querySelector('.fab');
-  if (fabBtn) fabBtn.style.display = (s === 'repeat') ? 'none' : '';
 
   if (fromDir) {
     const content = document.getElementById('mobileContent');
@@ -1623,8 +1399,9 @@ function openSheet(id = null) {
   document.getElementById('fTitle').value = task ? task.title : '';
   document.getElementById('fDesc').value = task ? (task.desc || '') : '';
   document.getElementById('fDue').value = task ? (task.due || '') : '';
+  document.getElementById('fRepeat').checked = task ? (task.repeat || false) : false;
   selCat(task ? task.category : 'work');
-  selStatus(task ? task.status : currentTab === 'repeat' ? 'todo' : currentTab);
+  selStatus(task ? task.status : currentTab);
 
   const bar = document.getElementById('quickDoneBar');
   const btn = document.getElementById('quickDoneBtn');
@@ -1690,12 +1467,13 @@ async function mobileSubmitTask() {
   if (!title) { document.getElementById('fTitle').focus(); return; }
   const desc = document.getElementById('fDesc').value.trim();
   const due  = document.getElementById('fDue').value || null;
+  const repeat = document.getElementById('fRepeat').checked;
 
   if (editingId) {
     const task = tasks.find(t => t.id === editingId);
     if (task) {
       const wasNotDone = task.status !== 'done';
-      task.title = title; task.desc = desc; task.due = due;
+      task.title = title; task.desc = desc; task.due = due; task.repeat = repeat;
       task.category = selectedCat; task.status = selectedStatus;
       task.updatedAt = Date.now();
       if (selectedStatus === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
@@ -1705,7 +1483,7 @@ async function mobileSubmitTask() {
       if (selectedStatus === 'done' && wasNotDone) celebrate();
     }
   } else {
-    const task = { id:genId(), title, desc, due, category:selectedCat, status:selectedStatus,
+    const task = { id:genId(), title, desc, due, repeat, category:selectedCat, status:selectedStatus,
                    created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(selectedStatus) };
     tasks.push(task);
     if (selectedStatus !== currentTab) switchTab(selectedStatus);
@@ -1869,7 +1647,6 @@ if (mobileContentEl) {
     const dy = e.changedTouches[0].clientY - tabSwipeStart.y;
     tabSwipeStart = null;
     if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
-    if (currentTab === 'repeat') return; // don't swipe away from repeat
     const idx = TABS_M.indexOf(currentTab);
     if (dx < 0 && idx < TABS_M.length - 1) switchTab(TABS_M[idx + 1], 'right');
     else if (dx > 0 && idx > 0)            switchTab(TABS_M[idx - 1], 'left');
@@ -1906,48 +1683,31 @@ async function deleteTask(id) {
   await removeTask(id);
 }
 
-// ── Repeat Templates ──
-async function addRepeatTemplate() {
-  // Support both desktop and mobile inputs
-  const desktopInput = document.getElementById('repeatTitle');
-  const mobileInput  = document.getElementById('mRepeatTitle');
-  const desktopCat   = document.getElementById('repeatCat');
-  const mobileCat    = document.getElementById('mRepeatCat');
-
-  const input = (mobileInput && document.activeElement !== desktopInput) ? mobileInput : desktopInput;
-  const catEl = (mobileCat && input === mobileInput) ? mobileCat : desktopCat;
-
-  if (!input) return;
-  const title = input.value.trim();
-  if (!title) { input.focus(); return; }
-  const category = catEl ? catEl.value : 'daily';
-
-  const r = { id: genId(), title, category };
-  repeats.push(r);
-  if (isMobile()) mobileRenderRepeats();
-  else desktopRenderRepeats();
-  await saveRepeat(r);
-  input.value = '';
-  input.focus();
-}
-
-async function deleteRepeatTemplate(id) {
-  repeats = repeats.filter(r => r.id !== id);
-  if (isMobile()) mobileRenderRepeats();
-  else desktopRenderRepeats();
-  await removeRepeat(id);
-}
-
 // ── Daily Repeats Processing ──
 async function processRepeats() {
   const today = getDateStr(Date.now());
-  for (const rt of repeats) {
-    if (tasks.some(t => t.repeatSourceId === rt.id && t.repeatDate === today)) continue;
-    const t = { id:genId(), title:rt.title, desc:'', category:'daily', status:'todo',
-                created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder('todo'),
-                repeatSourceId:rt.id, repeatDate:today };
-    tasks.push(t);
-    await saveTask(t);
+  const repeatTasks = tasks.filter(t => t.repeat === true);
+  for (const rt of repeatTasks) {
+    const alreadyExists = tasks.some(t =>
+      t.repeatSourceId === rt.id && t.repeatDate === today
+    );
+    if (alreadyExists) continue;
+    const newTask = {
+      id: genId(),
+      title: rt.title,
+      desc: rt.desc || '',
+      category: rt.category,
+      status: 'todo',
+      created: Date.now(),
+      updatedAt: Date.now(),
+      pinned: false,
+      order: getTopOrder('todo'),
+      repeatSourceId: rt.id,
+      repeatDate: today,
+      repeat: false,
+    };
+    tasks.push(newTask);
+    await saveTask(newTask);
   }
 }
 
@@ -2007,12 +1767,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Desktop repeat input Enter key
-document.getElementById('repeatTitle')?.addEventListener('keydown', e => {
-  if (e.isComposing || e.keyCode === 229) return;
-  if (e.key === 'Enter') addRepeatTemplate();
-});
-
 // ── Expose globals ──
 window.desktopOpenModal      = desktopOpenModal;
 window.desktopOpenEdit       = desktopOpenEdit;
@@ -2025,9 +1779,6 @@ window.deleteTask            = deleteTask;
 window.setFilter             = setFilter;
 window.onDragStart           = onDragStart;
 window.onDragEnd             = onDragEnd;
-window.toggleRepeatSection   = toggleRepeatSection;
-window.addRepeatTemplate     = addRepeatTemplate;
-window.deleteRepeatTemplate  = deleteRepeatTemplate;
 window.switchTab             = switchTab;
 window.toggleSearch          = toggleSearch;
 window.clearSearch           = clearSearch;
@@ -2052,11 +1803,6 @@ window.swipeEnd              = swipeEnd;
 
 // ── Init ──
 async function init() {
-  // Load repeats first (needed by processRepeats)
-  const repeatSnap = await getDocs(repeatsCol);
-  repeats = repeatSnap.docs.map(d => ({ id:d.id, ...d.data() }));
-  desktopRenderRepeats();
-
   // Set up desktop drag & drop
   setupDragDrop();
 
@@ -2076,15 +1822,36 @@ async function init() {
     render();
     if (firstLoad) {
       firstLoad = false;
+
+      // Migrate repeat templates to repeat:true tasks
+      const repeatSnap = await getDocs(repeatsCol);
+      const existingRepeats = repeatSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      for (const rt of existingRepeats) {
+        // Check if already migrated (task with same title and repeat:true exists)
+        const alreadyMigrated = tasks.some(t => t.repeat === true && t.title === rt.title);
+        if (!alreadyMigrated) {
+          const newTask = {
+            id: genId(),
+            title: rt.title,
+            desc: '',
+            category: rt.category || 'daily',
+            status: 'todo',
+            created: Date.now(),
+            updatedAt: Date.now(),
+            pinned: false,
+            order: getTopOrder('todo'),
+            repeat: true,
+          };
+          tasks.push(newTask);
+          await saveTask(newTask);
+        }
+        // Delete old repeat template
+        await deleteDoc(doc(db, 'repeats', rt.id));
+      }
+
       await processRepeats();
       render();
     }
-  });
-
-  onSnapshot(repeatsCol, snap => {
-    repeats = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    desktopRenderRepeats();
-    if (isMobile() && currentTab === 'repeat') mobileRenderRepeats();
   });
 }
 
