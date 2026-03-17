@@ -751,7 +751,7 @@
   <div class="header-stats" id="stats"></div>
   <div class="header-buttons">
     <div id="userInfo" style="display:none; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted);">
-      <img id="userAvatar" style="width:28px;height:28px;border-radius:50%;" src="" alt="">
+      <img id="userAvatar" style="width:28px;height:28px;border-radius:50%;" src="" alt="" referrerpolicy="no-referrer">
       <button onclick="handleSignOut()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);">ログアウト</button>
     </div>
     <button class="btn-add" onclick="desktopOpenModal()">+ New Task</button>
@@ -823,6 +823,10 @@
       <input type="checkbox" id="taskRepeat" style="width:16px;height:16px;accent-color:#6366f1;">
       <span style="font-size:0.85rem; font-weight:600;">🔄 毎日繰り返す</span>
     </label>
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:10px;">
+      <input type="checkbox" id="taskAi" style="width:16px;height:16px;accent-color:#6366f1;">
+      <span style="font-size:0.85rem; font-weight:600;">🤖 AIにお願い</span>
+    </label>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
       <button class="btn-submit" id="modalSubmit" onclick="desktopSubmitTask()">Add Task</button>
@@ -840,7 +844,7 @@
     <span class="header-title">📋 Kanban</span>
     <div class="header-btns">
       <div id="userInfoMobile" style="display:none; align-items:center; gap:6px;">
-        <img id="userAvatarMobile" style="width:26px;height:26px;border-radius:50%;" src="" alt="">
+        <img id="userAvatarMobile" style="width:26px;height:26px;border-radius:50%;" src="" alt="" referrerpolicy="no-referrer">
         <button onclick="handleSignOut()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.7rem;cursor:pointer;color:var(--text-muted);">ログアウト</button>
       </div>
       <button class="icon-btn" id="searchBtn" onclick="toggleSearch()" title="検索">🔍</button>
@@ -922,9 +926,13 @@
       <label>期日（任意）</label>
       <input type="date" id="fDue">
     </div>
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:14px; margin-bottom:14px; padding: 0 0;">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:14px; margin-bottom:10px; padding: 0 0;">
       <input type="checkbox" id="fRepeat" style="width:16px;height:16px;accent-color:#6366f1;">
       <span style="font-size:0.85rem; font-weight:600;">🔄 毎日繰り返す</span>
+    </label>
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-top:0; margin-bottom:14px; padding: 0 0;">
+      <input type="checkbox" id="fAi" style="width:16px;height:16px;accent-color:#6366f1;">
+      <span style="font-size:0.85rem; font-weight:600;">🤖 AIにお願い</span>
     </label>
     <div class="field">
       <label>カテゴリ</label>
@@ -1080,12 +1088,13 @@ function desktopCardHtml(t) {
         <div class="card-actions">
           <button class="card-btn pin-btn" onclick="togglePin('${t.id}')" title="${t.pinned ? 'Unpin' : 'Pin'}"><span class="pin-icon">&#x1F4CC;</span></button>
           <button class="card-btn lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
+          <button class="card-btn ai-btn" onclick="toggleAi('${t.id}')" title="${t.ai ? 'AIフラグ解除' : 'AIにお願い'}" style="${t.ai ? 'opacity:1;color:#6366f1;' : ''}">🤖</button>
           <button class="card-btn delete-btn" onclick="deleteTask('${t.id}')" title="Delete">&#x2715;</button>
         </div>
       </div>
       <div class="card-body">
         <div class="card-body-left">
-          <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${esc(t.title)}</div>
+          <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${t.ai ? '<span style="font-size:0.7rem; margin-left:2px;">🤖</span> ' : ''}${esc(t.title)}</div>
           ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
           ${dueBadge(t.due)}
         </div>
@@ -1162,6 +1171,7 @@ function desktopOpenModal() {
   document.getElementById('taskStatus').value = 'todo';
   document.getElementById('taskDue').value = '';
   document.getElementById('taskRepeat').checked = false;
+  document.getElementById('taskAi').checked = false;
   document.getElementById('desktopModal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -1178,6 +1188,7 @@ function desktopOpenEdit(id) {
   document.getElementById('taskStatus').value = task.status;
   document.getElementById('taskDue').value = task.due || '';
   document.getElementById('taskRepeat').checked = task.repeat || false;
+  document.getElementById('taskAi').checked = task.ai || false;
   document.getElementById('desktopModal').classList.add('active');
   setTimeout(() => document.getElementById('taskTitle').focus(), 100);
 }
@@ -1193,12 +1204,13 @@ async function desktopSubmitTask() {
   const status = document.getElementById('taskStatus').value;
   const due = document.getElementById('taskDue').value || null;
   const repeat = document.getElementById('taskRepeat').checked;
+  const ai = document.getElementById('taskAi').checked;
 
   if (desktopEditingId) {
     const task = tasks.find(t => t.id === desktopEditingId);
     if (task) {
       const wasNotDone = task.status !== 'done';
-      task.title = title; task.desc = desc; task.category = cat; task.due = due; task.repeat = repeat;
+      task.title = title; task.desc = desc; task.category = cat; task.due = due; task.repeat = repeat; task.ai = ai;
       task.updatedAt = Date.now();
       if (task.status !== status) { task.status = status; task.updatedAt = Date.now(); }
       if (status === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
@@ -1208,7 +1220,7 @@ async function desktopSubmitTask() {
       if (status === 'done' && wasNotDone) celebrate();
     }
   } else {
-    const task = { id:genId(), title, desc, category:cat, status, due, repeat, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
+    const task = { id:genId(), title, desc, category:cat, status, due, repeat, ai, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
     tasks.push(task);
     desktopRender();
     await saveTask(task);
@@ -1363,9 +1375,10 @@ function mobileRender() {
            ontouchmove="swipeMove(event,'${t.id}')"
            ontouchend="swipeEnd(event,'${t.id}')">
         <div class="card-top">
-          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat ? '🔄 ' : ''}${esc(t.title)}</div>
+          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat ? '🔄 ' : ''}${t.ai ? '🤖 ' : ''}${esc(t.title)}</div>
           <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
             <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
+            <button class="mobile-lane-btn" onclick="toggleAi('${t.id}')" title="${t.ai ? 'AIフラグ解除' : 'AIにお願い'}" style="${t.ai ? 'color:#6366f1;' : ''}">🤖</button>
             <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
           </div>
         </div>
@@ -1436,6 +1449,7 @@ function openSheet(id = null) {
   document.getElementById('fDesc').value = task ? (task.desc || '') : '';
   document.getElementById('fDue').value = task ? (task.due || '') : '';
   document.getElementById('fRepeat').checked = task ? (task.repeat || false) : false;
+  document.getElementById('fAi').checked = task ? (task.ai || false) : false;
   selCat(task ? task.category : 'work');
   selStatus(task ? task.status : currentTab);
 
@@ -1504,12 +1518,13 @@ async function mobileSubmitTask() {
   const desc = document.getElementById('fDesc').value.trim();
   const due  = document.getElementById('fDue').value || null;
   const repeat = document.getElementById('fRepeat').checked;
+  const ai = document.getElementById('fAi').checked;
 
   if (editingId) {
     const task = tasks.find(t => t.id === editingId);
     if (task) {
       const wasNotDone = task.status !== 'done';
-      task.title = title; task.desc = desc; task.due = due; task.repeat = repeat;
+      task.title = title; task.desc = desc; task.due = due; task.repeat = repeat; task.ai = ai;
       task.category = selectedCat; task.status = selectedStatus;
       task.updatedAt = Date.now();
       if (selectedStatus === 'done') { task.pinned = false; task.doneAt = task.doneAt || Date.now(); }
@@ -1519,7 +1534,7 @@ async function mobileSubmitTask() {
       if (selectedStatus === 'done' && wasNotDone) celebrate();
     }
   } else {
-    const task = { id:genId(), title, desc, due, repeat, category:selectedCat, status:selectedStatus,
+    const task = { id:genId(), title, desc, due, repeat, ai, category:selectedCat, status:selectedStatus,
                    created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(selectedStatus) };
     tasks.push(task);
     if (selectedStatus !== currentTab) switchTab(selectedStatus);
@@ -1711,6 +1726,17 @@ async function toggleLane(id) {
   render();
   await saveTask(task);
 }
+
+// ── Toggle AI flag ──
+async function toggleAi(id) {
+  const task = tasks.find(t => t.id === id);
+  if (!task) return;
+  task.ai = !task.ai;
+  task.updatedAt = Date.now();
+  render();
+  await saveTask(task);
+}
+window.toggleAi = toggleAi;
 
 // ── Delete Task (desktop) ──
 async function deleteTask(id) {
