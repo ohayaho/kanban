@@ -986,7 +986,7 @@
 // Firebase
 // ════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1004,7 +1004,6 @@ const auth = getAuth(fbApp);
 const provider = new GoogleAuthProvider();
 let currentUser = null;
 const tasksCol = collection(db, 'tasks');
-const repeatsCol = collection(db, 'repeats');
 
 // ════════════════════════════════════════
 // Shared State
@@ -1723,29 +1722,19 @@ async function deleteTask(id) {
 // ── Daily Repeats Processing ──
 async function processRepeats() {
   const today = getDateStr(Date.now());
-  const repeatTasks = tasks.filter(t => t.repeat === true);
-  for (const rt of repeatTasks) {
-    const alreadyExists = tasks.some(t =>
-      t.repeatSourceId === rt.id && t.repeatDate === today
-    );
-    if (alreadyExists) continue;
-    const newTask = {
-      id: genId(),
-      title: rt.title,
-      desc: rt.desc || '',
-      category: rt.category,
-      status: 'todo',
-      created: Date.now(),
-      updatedAt: Date.now(),
-      pinned: false,
-      order: getTopOrder('todo'),
-      repeatSourceId: rt.id,
-      repeatDate: today,
-      repeat: false,
-    };
-    tasks.push(newTask);
-    await saveTask(newTask);
+  const toReset = tasks.filter(t =>
+    t.repeat === true &&
+    t.status === 'done' &&
+    t.doneAt &&
+    getDateStr(t.doneAt) !== today
+  );
+  for (const t of toReset) {
+    t.status = 'todo';
+    t.doneAt = null;
+    t.updatedAt = Date.now();
+    await saveTask(t);
   }
+  if (toReset.length > 0) render();
 }
 
 // ── Confetti ──
@@ -1859,33 +1848,6 @@ async function init() {
     render();
     if (firstLoad) {
       firstLoad = false;
-
-      // Migrate repeat templates to repeat:true tasks
-      const repeatSnap = await getDocs(repeatsCol);
-      const existingRepeats = repeatSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      for (const rt of existingRepeats) {
-        // Check if already migrated (task with same title and repeat:true exists)
-        const alreadyMigrated = tasks.some(t => t.repeat === true && t.title === rt.title);
-        if (!alreadyMigrated) {
-          const newTask = {
-            id: genId(),
-            title: rt.title,
-            desc: '',
-            category: rt.category || 'daily',
-            status: 'todo',
-            created: Date.now(),
-            updatedAt: Date.now(),
-            pinned: false,
-            order: getTopOrder('todo'),
-            repeat: true,
-          };
-          tasks.push(newTask);
-          await saveTask(newTask);
-        }
-        // Delete old repeat template
-        await deleteDoc(doc(db, 'repeats', rt.id));
-      }
-
       await processRepeats();
       render();
     }
