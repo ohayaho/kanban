@@ -1893,8 +1893,10 @@ async function init() {
 }
 
 // Auth state handler
+let initialized = false;
 onAuthStateChanged(auth, async (user) => {
-  if (user) {
+  if (user && !initialized) {
+    initialized = true;
     currentUser = user;
     // Hide login screen, show app
     document.getElementById('loginScreen').style.display = 'none';
