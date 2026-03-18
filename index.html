@@ -1404,7 +1404,6 @@ function mobileCardHtml(t) {
         <div class="card-top">
           <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat?'🔄 ':''}${t.ai?'🤖 ':''}${esc(t.title)}</div>
           <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-            <button class="mobile-lane-btn${t.ai?' active':''}" onclick="toggleAi('${t.id}')" title="${t.ai?'AIフラグ解除':'AIにお願い'}">🤖</button>
             <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
           </div>
         </div>
