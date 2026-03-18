@@ -67,6 +67,9 @@ html[data-theme="dark"] {
 .cat-kids    { background: rgba(46,125,50,0.15); color: var(--cat-kids); }
 .cat-other   { background: rgba(100,116,139,0.15); color: var(--cat-other); }
 
+/* Lane bar — desktop only (hidden by default, shown via @media min-width) */
+.lane-bar { display: none; }
+
 /* Celebration canvas */
 .confetti-canvas {
   position: fixed;
@@ -208,14 +211,6 @@ html[data-theme="dark"] {
   .swimlane {
     display: flex;
     flex-direction: column;
-    min-height: 0;
-  }
-  .swimlane[data-lane="work"] {
-    flex: 0 0 33%;
-    min-height: 0;
-    overflow-y: auto;
-  }
-  .swimlane[data-lane="personal"] {
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
@@ -231,6 +226,50 @@ html[data-theme="dark"] {
     user-select: none;
     letter-spacing: 0.3px;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .lane-name-label { cursor: pointer; }
+  .lane-name-label:hover { color: var(--accent); }
+  .lane-rename-input {
+    font-size: 0.7rem; font-weight: 700; font-family: inherit;
+    background: var(--bg); border: none; border-bottom: 1.5px solid var(--accent);
+    color: var(--text); outline: none; width: 100px; padding: 0 2px;
+  }
+  .swimlane-del-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 0.6rem; padding: 1px 4px;
+    border-radius: 3px; opacity: 0; transition: opacity 0.15s, color 0.15s;
+    line-height: 1;
+  }
+  .swimlane:hover .swimlane-del-btn { opacity: 0.6; }
+  .swimlane-del-btn:hover { opacity: 1 !important; color: #ef4444; background: rgba(239,68,68,0.1); }
+
+  /* Lane management bar */
+  .lane-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 28px 10px; flex-wrap: wrap;
+  }
+  .lane-bar-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+  .btn-add-lane {
+    padding: 4px 12px; border-radius: 20px; font-size: 0.72rem; font-weight: 600;
+    border: 1px dashed var(--border); background: transparent; color: var(--text-muted);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-add-lane:hover { border-color: var(--accent); color: var(--accent); }
+  .lane-input-wrap {
+    display: none; align-items: center; gap: 6px;
+  }
+  .lane-input-wrap.open { display: flex; }
+  .lane-new-input {
+    padding: 4px 10px; border-radius: 20px; font-size: 0.72rem;
+    border: 1.5px solid var(--accent); background: var(--bg); color: var(--text);
+    outline: none; min-width: 140px; font-family: inherit;
+  }
+  .lane-add-ok {
+    padding: 4px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+    border: none; background: var(--accent); color: #fff; cursor: pointer;
   }
   .swimlane-body {
     padding: 4px 8px 8px;
@@ -811,6 +850,17 @@ html[data-theme="dark"] {
   <span class="filter-chip"        data-cat="other"    onclick="setFilter('other')">Other</span>
 </div>
 
+<!-- Desktop Lane Bar -->
+<div class="lane-bar" id="laneBar">
+  <button class="btn-add-lane" onclick="toggleLaneInput()">＋ レーン追加</button>
+  <div class="lane-input-wrap" id="laneInputWrap">
+    <input type="text" class="lane-new-input" id="laneNewInput" placeholder="レーン名（例：🎯 企画）"
+           onkeydown="if(event.key==='Enter'&&!event.isComposing){commitAddLane();}"
+           maxlength="20">
+    <button class="lane-add-ok" onclick="commitAddLane()">追加</button>
+  </div>
+</div>
+
 <!-- Desktop Board -->
 <div class="board" id="board">
   <div class="column" data-status="todo">
@@ -844,6 +894,8 @@ html[data-theme="dark"] {
     <input type="text" id="taskTitle" placeholder="What needs to be done?" maxlength="100" autofocus>
     <label>Description</label>
     <textarea id="taskDesc" placeholder="Details (optional)" rows="2"></textarea>
+    <label>レーン</label>
+    <select id="taskLane" style="margin-bottom:4px;"></select>
     <label>Category</label>
     <select id="taskCat">
       <option value="daily">Daily</option>
@@ -1093,6 +1145,27 @@ let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
 
+// ── Swimlane config ──
+const DEFAULT_LANES = [
+  { id: 'work',     name: '💼 仕事' },
+  { id: 'personal', name: '👤 個人' },
+];
+let lanesConfig = DEFAULT_LANES.map(l => ({...l}));
+
+function loadLanes() {
+  try {
+    const s = localStorage.getItem('kanban_lanes');
+    if (s) lanesConfig = JSON.parse(s);
+  } catch(e) {}
+}
+function saveLanes() {
+  localStorage.setItem('kanban_lanes', JSON.stringify(lanesConfig));
+}
+function getLaneId(t) {
+  if (t.lane) return t.lane;
+  return t.category === 'work' ? 'work' : 'personal';
+}
+
 const CAT = { daily:'Daily', work:'Work', study:'Study', personal:'Personal', kids:'Kids', other:'Other' };
 const NEXT = { todo:'doing', doing:'done', done:'todo' };
 const TABS_M = ['todo', 'doing', 'done'];
@@ -1216,28 +1289,22 @@ function desktopRender() {
 
     const filtered = sortTasks(visible.filter(t => currentFilter === 'all' || t.category === currentFilter));
 
-    // Split into 個人 (non-work) and 仕事 (work) lanes
-    const personalTasks = filtered.filter(t => t.category !== 'work');
-    const workTasks     = filtered.filter(t => t.category === 'work');
-
-    col.innerHTML = `
-      <div class="swimlane" data-lane="work">
-        <div class="swimlane-header">💼 仕事</div>
-        <div class="swimlane-body" data-status="${status}" data-lane="work">
-          ${workTasks.length > 0
-            ? workTasks.map(t => desktopCardHtml(t)).join('')
-            : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
-        </div>
-      </div>
-      <div class="swimlane" data-lane="personal">
-        <div class="swimlane-header">👤 個人</div>
-        <div class="swimlane-body" data-status="${status}" data-lane="personal">
-          ${personalTasks.length > 0
-            ? personalTasks.map(t => desktopCardHtml(t)).join('')
-            : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
-        </div>
-      </div>
-    `;
+    col.innerHTML = lanesConfig.map(lane => {
+      const laneTasks = filtered.filter(t => getLaneId(t) === lane.id);
+      const canDel = lanesConfig.length > 1;
+      return `
+        <div class="swimlane" data-lane="${lane.id}">
+          <div class="swimlane-header">
+            <span class="lane-name-label" onclick="startRenaming('${lane.id}', this)" title="クリックで名前を変更">${esc(lane.name)}</span>
+            ${canDel ? `<button class="swimlane-del-btn" onclick="deleteLane('${lane.id}')" title="レーンを削除">✕</button>` : ''}
+          </div>
+          <div class="swimlane-body" data-status="${status}" data-lane="${lane.id}">
+            ${laneTasks.length > 0
+              ? laneTasks.map(t => desktopCardHtml(t)).join('')
+              : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
+          </div>
+        </div>`;
+    }).join('');
   });
 
   const { todo: todoCount, doing: doingCount, done: doneCount } = getTaskCounts();
@@ -1260,6 +1327,9 @@ function openDesktopModal(id = null) {
   document.getElementById('modalSubmit').textContent = task ? 'Save' : 'Add Task';
   document.getElementById('taskTitle').value         = task?.title    ?? '';
   document.getElementById('taskDesc').value          = task?.desc     ?? '';
+  const laneSelect = document.getElementById('taskLane');
+  laneSelect.innerHTML = lanesConfig.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
+  laneSelect.value = task ? getLaneId(task) : (lanesConfig[0]?.id ?? 'personal');
   document.getElementById('taskCat').value           = task?.category ?? 'work';
   document.getElementById('taskStatus').value        = task?.status   ?? 'todo';
   document.getElementById('taskDue').value           = task?.due      ?? '';
@@ -1276,6 +1346,7 @@ async function desktopSubmitTask() {
   const title = document.getElementById('taskTitle').value.trim();
   if (!title) { document.getElementById('taskTitle').focus(); return; }
   const desc = document.getElementById('taskDesc').value.trim();
+  const lane = document.getElementById('taskLane').value;
   const cat = document.getElementById('taskCat').value;
   const status = document.getElementById('taskStatus').value;
   const due = document.getElementById('taskDue').value || null;
@@ -1285,14 +1356,14 @@ async function desktopSubmitTask() {
   if (desktopEditingId) {
     const task = tasks.find(t => t.id === desktopEditingId);
     if (task) {
-      task.title = title; task.desc = desc; task.category = cat; task.due = due; task.repeat = repeat; task.ai = ai;
+      task.title = title; task.desc = desc; task.lane = lane; task.category = cat; task.due = due; task.repeat = repeat; task.ai = ai;
       const shouldCelebrate = transitionStatus(task, status);
       desktopRender();
       await saveTask(task);
       if (shouldCelebrate) celebrate();
     }
   } else {
-    const task = { id:genId(), title, desc, category:cat, status, due, repeat, ai, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
+    const task = { id:genId(), title, desc, lane, category:cat, status, due, repeat, ai, created:Date.now(), updatedAt:Date.now(), pinned:false, order:getTopOrder(status) };
     tasks.push(task);
     desktopRender();
     await saveTask(task);
@@ -1763,6 +1834,65 @@ if (mobileContentEl) {
 // SHARED LOGIC
 // ════════════════════════════════════════
 
+// ── Lane management ──
+function toggleLaneInput() {
+  const wrap = document.getElementById('laneInputWrap');
+  const input = document.getElementById('laneNewInput');
+  const isOpen = wrap.classList.toggle('open');
+  if (isOpen) setTimeout(() => input.focus(), 50);
+  else input.value = '';
+}
+
+function commitAddLane() {
+  const input = document.getElementById('laneNewInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const id = 'lane_' + Date.now().toString(36);
+  lanesConfig.push({ id, name });
+  saveLanes();
+  input.value = '';
+  document.getElementById('laneInputWrap').classList.remove('open');
+  desktopRender();
+}
+
+function startRenaming(laneId, el) {
+  const lane = lanesConfig.find(l => l.id === laneId);
+  if (!lane) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = lane.name;
+  input.className = 'lane-rename-input';
+  input.maxLength = 20;
+  el.replaceWith(input);
+  input.focus(); input.select();
+  const commit = () => {
+    const name = input.value.trim();
+    if (name) { lane.name = name; saveLanes(); }
+    desktopRender();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) input.blur();
+    if (e.key === 'Escape') desktopRender();
+  });
+}
+
+function deleteLane(laneId) {
+  if (lanesConfig.length <= 1) return;
+  const lane = lanesConfig.find(l => l.id === laneId);
+  const taskCount = tasks.filter(t => getLaneId(t) === laneId).length;
+  const msg = taskCount > 0
+    ? `「${lane.name}」を削除しますか？\nこのレーンのタスク ${taskCount} 件は「${lanesConfig.find(l=>l.id!==laneId)?.name}」に移動されます。`
+    : `「${lane.name}」を削除しますか？`;
+  if (!confirm(msg)) return;
+  const fallback = lanesConfig.find(l => l.id !== laneId)?.id ?? 'personal';
+  tasks.forEach(t => { if (getLaneId(t) === laneId) { t.lane = fallback; t.updatedAt = Date.now(); } });
+  lanesConfig = lanesConfig.filter(l => l.id !== laneId);
+  saveLanes();
+  Promise.all(tasks.filter(t => t.lane === fallback && t.updatedAt === Date.now()).map(t => saveTask(t)));
+  desktopRender();
+}
+
 // ── Toggle Pin ──
 async function togglePin(id) {
   const task = tasks.find(t => t.id === id);
@@ -1906,9 +2036,14 @@ window.undoDelete            = undoDelete;
 window.swipeStart            = swipeStart;
 window.swipeMove             = swipeMove;
 window.swipeEnd              = swipeEnd;
+window.toggleLaneInput       = toggleLaneInput;
+window.commitAddLane         = commitAddLane;
+window.deleteLane            = deleteLane;
+window.startRenaming         = startRenaming;
 
 // ── Init ──
 async function init() {
+  loadLanes();
   // Set up desktop drag & drop
   setupDragDrop();
 
