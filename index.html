@@ -1425,12 +1425,13 @@ function setupDragDrop() {
       lane.querySelectorAll('.drop-indicator').forEach(el => el.remove());
       if (!dragId) return;
       const newStatus = lane.dataset.status;
+      const newLane   = lane.dataset.lane;
       const task = tasks.find(t => t.id === dragId);
       if (!task) return;
+      task.lane = newLane;
       const shouldCelebrate = transitionStatus(task, newStatus);
-      // Reorder within same lane (same status, same category group)
       const dropIdx = getDropIndex(lane, e.clientY);
-      const laneTasks = sortTasks(tasks.filter(t => t.status === newStatus && t.id !== dragId && (currentFilter === 'all' || t.category === currentFilter)));
+      const laneTasks = sortTasks(tasks.filter(t => t.status === newStatus && t.id !== dragId && getLaneId(t) === newLane && (currentFilter === 'all' || t.category === currentFilter)));
       const reordered = [...laneTasks];
       reordered.splice(dropIdx, 0, task);
       reordered.forEach((t, i) => { t.order = i; });
