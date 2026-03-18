@@ -1162,8 +1162,8 @@ function saveLanes() {
   localStorage.setItem('kanban_lanes', JSON.stringify(lanesConfig));
 }
 function getLaneId(t) {
-  if (t.lane) return t.lane;
-  return t.category === 'work' ? 'work' : 'personal';
+  const lid = t.lane || (t.category === 'work' ? 'work' : 'personal');
+  return lanesConfig.some(l => l.id === lid) ? lid : (lanesConfig[0]?.id ?? 'personal');
 }
 
 const CAT = { daily:'Daily', work:'Work', study:'Study', personal:'Personal', kids:'Kids', other:'Other' };
