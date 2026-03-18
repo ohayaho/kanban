@@ -295,6 +295,7 @@ html[data-theme="dark"] {
   .card-btn.delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
   .card-btn.lane-btn:hover   { color: var(--accent); background: rgba(99,102,241,0.1); }
   .card.pinned .pin-btn { opacity: 1; color: var(--todo); }
+  .card-btn.ai-btn.active { opacity: 1; color: #6366f1; }
   .card .pin-icon { font-size: 0.78rem; }
 
   .drop-indicator { height: 3px; background: #6366f1; border-radius: 2px; margin: -2px 0; pointer-events: none; }
@@ -750,6 +751,7 @@ html[data-theme="dark"] {
     flex-shrink: 0;
   }
   .mobile-lane-btn:active { background: var(--bg); }
+  .mobile-lane-btn.active { color: #6366f1; }
 }
 </style>
 </head>
@@ -1098,6 +1100,23 @@ const TABS_M = ['todo', 'doing', 'done'];
 // ── Device detection ──
 const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
+// ── Button helpers ──
+const laneIcon  = c => c === 'work' ? '💼' : '👤';
+const laneTitle = c => c === 'work' ? '個人に移動' : '仕事に移動';
+
+function cardActionBtns(t) {
+  return `
+    <button class="card-btn pin-btn" onclick="togglePin('${t.id}')" title="${t.pinned?'Unpin':'Pin'}"><span class="pin-icon">📌</span></button>
+    <button class="card-btn lane-btn" onclick="toggleLane('${t.id}')" title="${laneTitle(t.category)}">${laneIcon(t.category)}</button>
+    <button class="card-btn ai-btn${t.ai?' active':''}" onclick="toggleAi('${t.id}')" title="${t.ai?'AIフラグ解除':'AIにお願い'}">🤖</button>
+    <button class="card-btn delete-btn" onclick="deleteTask('${t.id}')" title="Delete">&#x2715;</button>
+  `;
+}
+
+function setQuickBtn(btn, bar, text, cls, handler) {
+  btn.textContent = text; btn.className = cls; btn.onclick = handler; bar.style.display = 'block';
+}
+
 // ── Firebase helpers ──
 async function saveTask(t) { const {id,...d} = t; await setDoc(doc(db,'tasks',id), d); }
 async function removeTask(id) { await deleteDoc(doc(db,'tasks',id)); }
@@ -1167,12 +1186,7 @@ function desktopCardHtml(t) {
          ondragstart="onDragStart(event)" ondragend="onDragEnd(event)" ondblclick="openDesktopModal('${t.id}')">
       <div class="card-top">
         <span class="card-category cat-${t.category}">${CAT[t.category]}</span>
-        <div class="card-actions">
-          <button class="card-btn pin-btn" onclick="togglePin('${t.id}')" title="${t.pinned ? 'Unpin' : 'Pin'}"><span class="pin-icon">&#x1F4CC;</span></button>
-          <button class="card-btn lane-btn" onclick="toggleLane('${t.id}')" title="${t.category === 'work' ? '個人に移動' : '仕事に移動'}">${t.category === 'work' ? '💼' : '👤'}</button>
-          <button class="card-btn ai-btn" onclick="toggleAi('${t.id}')" title="${t.ai ? 'AIフラグ解除' : 'AIにお願い'}" style="${t.ai ? 'opacity:1;color:#6366f1;' : ''}">🤖</button>
-          <button class="card-btn delete-btn" onclick="deleteTask('${t.id}')" title="Delete">&#x2715;</button>
-        </div>
+        <div class="card-actions">${cardActionBtns(t)}</div>
       </div>
       <div class="card-body">
         <div class="card-body-left">
@@ -1391,8 +1405,8 @@ function mobileCardHtml(t) {
         <div class="card-top">
           <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat?'🔄 ':''}${t.ai?'🤖 ':''}${esc(t.title)}</div>
           <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-            <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${t.category==='work'?'個人に移動':'仕事に移動'}">${t.category==='work'?'💼':'👤'}</button>
-            <button class="mobile-lane-btn" onclick="toggleAi('${t.id}')" title="${t.ai?'AIフラグ解除':'AIにお願い'}" style="${t.ai?'color:#6366f1;':''}">🤖</button>
+            <button class="mobile-lane-btn" onclick="toggleLane('${t.id}')" title="${laneTitle(t.category)}">${laneIcon(t.category)}</button>
+            <button class="mobile-lane-btn${t.ai?' active':''}" onclick="toggleAi('${t.id}')" title="${t.ai?'AIフラグ解除':'AIにお願い'}">🤖</button>
             <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
           </div>
         </div>
@@ -1511,15 +1525,10 @@ function openSheet(id = null) {
 
   const bar = document.getElementById('quickDoneBar');
   const btn = document.getElementById('quickDoneBtn');
-  if (task && task.status === 'todo') {
-    btn.textContent = '▶ Doing'; btn.className = 'btn-quick-doing'; btn.onclick = quickAdvance; bar.style.display = 'block';
-  } else if (task && task.status === 'doing') {
-    btn.textContent = '✓ Done'; btn.className = 'btn-quick-done'; btn.onclick = quickAdvance; bar.style.display = 'block';
-  } else if (task && task.status === 'done') {
-    btn.textContent = '↩ Todo に戻す'; btn.className = 'btn-quick-undo'; btn.onclick = quickUndone; bar.style.display = 'block';
-  } else {
-    bar.style.display = 'none';
-  }
+  if      (task?.status === 'todo')  setQuickBtn(btn, bar, '▶ Doing',       'btn-quick-doing', quickAdvance);
+  else if (task?.status === 'doing') setQuickBtn(btn, bar, '✓ Done',         'btn-quick-done',  quickAdvance);
+  else if (task?.status === 'done')  setQuickBtn(btn, bar, '↩ Todo に戻す', 'btn-quick-undo',  quickUndone);
+  else bar.style.display = 'none';
 
   document.getElementById('overlay').classList.add('open');
   setTimeout(() => document.getElementById('fTitle').focus(), 300);
