@@ -67,8 +67,6 @@ html[data-theme="dark"] {
 .cat-kids    { background: rgba(46,125,50,0.15); color: var(--cat-kids); }
 .cat-other   { background: rgba(100,116,139,0.15); color: var(--cat-other); }
 
-/* Lane bar — desktop only (hidden by default, shown via @media min-width) */
-.lane-bar { display: none; }
 
 /* Celebration canvas */
 .confetti-canvas {
@@ -141,8 +139,14 @@ html[data-theme="dark"] {
   .filter-bar {
     display: flex;
     gap: 6px;
-    padding: 16px 28px 0;
+    padding: 12px 28px;
     flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-separator {
+    width: 1px; height: 18px;
+    background: var(--border);
+    margin: 0 4px;
   }
   .filter-chip {
     padding: 5px 12px;
@@ -249,7 +253,7 @@ html[data-theme="dark"] {
   /* Lane management bar */
   .lane-bar {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 28px 10px; flex-wrap: wrap;
+    flex-wrap: wrap;
   }
   .lane-bar-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
   .btn-add-lane {
@@ -839,7 +843,7 @@ html[data-theme="dark"] {
   </div>
 </header>
 
-<!-- Desktop Filter Bar -->
+<!-- Desktop Filter + Lane Bar -->
 <div class="filter-bar" id="filterBar">
   <span class="filter-chip active" data-cat="all"      onclick="setFilter('all')">All</span>
   <span class="filter-chip"        data-cat="daily"    onclick="setFilter('daily')">Daily</span>
@@ -848,16 +852,15 @@ html[data-theme="dark"] {
   <span class="filter-chip"        data-cat="study"    onclick="setFilter('study')">Study</span>
   <span class="filter-chip"        data-cat="kids"     onclick="setFilter('kids')">Kids</span>
   <span class="filter-chip"        data-cat="other"    onclick="setFilter('other')">Other</span>
-</div>
-
-<!-- Desktop Lane Bar -->
-<div class="lane-bar" id="laneBar">
-  <button class="btn-add-lane" onclick="toggleLaneInput()">＋ レーン追加</button>
-  <div class="lane-input-wrap" id="laneInputWrap">
-    <input type="text" class="lane-new-input" id="laneNewInput" placeholder="レーン名（例：🎯 企画）"
-           onkeydown="if(event.key==='Enter'&&!event.isComposing){commitAddLane();}"
-           maxlength="20">
-    <button class="lane-add-ok" onclick="commitAddLane()">追加</button>
+  <span class="filter-separator"></span>
+  <div class="lane-bar" id="laneBar">
+    <button class="btn-add-lane" onclick="toggleLaneInput()">＋ レーン追加</button>
+    <div class="lane-input-wrap" id="laneInputWrap">
+      <input type="text" class="lane-new-input" id="laneNewInput" placeholder="レーン名（例：🎯 企画）"
+             onkeydown="if(event.key==='Enter'&&!event.isComposing){commitAddLane();}"
+             maxlength="20">
+      <button class="lane-add-ok" onclick="commitAddLane()">追加</button>
+    </div>
   </div>
 </div>
 
