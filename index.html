@@ -208,19 +208,50 @@ html[data-theme="dark"] {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   /* Swimlane structure */
   .swimlane {
     display: flex;
     flex-direction: column;
-    flex: 1 1 0;
-    min-height: 0;
+    flex: none;
+    min-height: 80px;
     overflow-y: auto;
   }
   .swimlane + .swimlane {
-    border-top: 2px solid var(--border);
+    border-top: none;
+  }
+  /* Resizer handle between swimlanes */
+  .swimlane-resizer {
+    height: 6px;
+    cursor: row-resize;
+    background: var(--border);
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .swimlane-resizer:hover,
+  .swimlane-resizer.active {
+    background: var(--accent);
+  }
+  .swimlane-resizer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--text-muted);
+    opacity: 0.4;
+  }
+  .swimlane-resizer:hover::after,
+  .swimlane-resizer.active::after {
+    opacity: 0.8;
+    background: #fff;
   }
   .swimlane-header {
     font-size: 0.7rem;
@@ -1164,6 +1195,88 @@ function loadLanes() {
 function saveLanes() {
   localStorage.setItem('kanban_lanes', JSON.stringify(lanesConfig));
 }
+
+// ── Lane height persistence ──
+const DEFAULT_LANE_HEIGHT = 320; // ~4 cards visible
+let laneHeights = {};
+function loadLaneHeights() {
+  try {
+    const s = localStorage.getItem('kanban_lane_heights');
+    if (s) laneHeights = JSON.parse(s);
+  } catch(e) {}
+}
+function saveLaneHeights() {
+  localStorage.setItem('kanban_lane_heights', JSON.stringify(laneHeights));
+}
+function getLaneHeight(laneId) {
+  return laneHeights[laneId] || DEFAULT_LANE_HEIGHT;
+}
+
+// ── Swimlane resizer logic ──
+let resizeState = null;
+function setupLaneResizers() {
+  document.querySelectorAll('.swimlane-resizer').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const prevLane = handle.previousElementSibling;
+      const nextLane = handle.nextElementSibling;
+      if (!prevLane || !nextLane) return;
+      const prevId = prevLane.dataset.lane;
+      const nextId = nextLane.dataset.lane;
+      const startY = e.clientY;
+      const startPrevH = prevLane.offsetHeight;
+      const startNextH = nextLane.offsetHeight;
+      handle.classList.add('active');
+      resizeState = { handle, prevLane, nextLane, prevId, nextId, startY, startPrevH, startNextH };
+    });
+    // Double-click to reset both lanes to default height (all columns)
+    handle.addEventListener('dblclick', () => {
+      const prevLane = handle.previousElementSibling;
+      const nextLane = handle.nextElementSibling;
+      if (!prevLane || !nextLane) return;
+      const prevId = prevLane.dataset.lane;
+      const nextId = nextLane.dataset.lane;
+      applyLaneHeightAll(prevId, DEFAULT_LANE_HEIGHT);
+      applyLaneHeightAll(nextId, DEFAULT_LANE_HEIGHT);
+      laneHeights[prevId] = DEFAULT_LANE_HEIGHT;
+      laneHeights[nextId] = DEFAULT_LANE_HEIGHT;
+      saveLaneHeights();
+    });
+  });
+}
+
+// Apply height to all columns' swimlanes with the same lane id
+function applyLaneHeightAll(laneId, height) {
+  document.querySelectorAll(`.swimlane[data-lane="${laneId}"]`).forEach(el => {
+    el.style.height = height + 'px';
+  });
+}
+
+document.addEventListener('mousemove', e => {
+  if (!resizeState) return;
+  e.preventDefault();
+  const { prevId, nextId, startY, startPrevH, startNextH } = resizeState;
+  const dy = e.clientY - startY;
+  const minH = 80;
+  const newPrevH = Math.max(minH, Math.min(startPrevH + dy, startPrevH + startNextH - minH));
+  const newNextH = startPrevH + startNextH - newPrevH;
+  applyLaneHeightAll(prevId, newPrevH);
+  applyLaneHeightAll(nextId, newNextH);
+});
+
+document.addEventListener('mouseup', () => {
+  if (!resizeState) return;
+  const { handle, prevId, nextId } = resizeState;
+  handle.classList.remove('active');
+  // Read actual height from one of the elements
+  const prevEl = document.querySelector(`.swimlane[data-lane="${prevId}"]`);
+  const nextEl = document.querySelector(`.swimlane[data-lane="${nextId}"]`);
+  if (prevEl) laneHeights[prevId] = prevEl.offsetHeight;
+  if (nextEl) laneHeights[nextId] = nextEl.offsetHeight;
+  saveLaneHeights();
+  resizeState = null;
+});
+
 function getLaneId(t) {
   const lid = t.lane || (t.category === 'work' ? 'work' : 'personal');
   return lanesConfig.some(l => l.id === lid) ? lid : (lanesConfig[0]?.id ?? 'personal');
@@ -1292,11 +1405,13 @@ function desktopRender() {
 
     const filtered = sortTasks(visible.filter(t => currentFilter === 'all' || t.category === currentFilter));
 
-    col.innerHTML = lanesConfig.map(lane => {
+    col.innerHTML = lanesConfig.map((lane, idx) => {
       const laneTasks = filtered.filter(t => getLaneId(t) === lane.id);
       const canDel = lanesConfig.length > 1;
+      const h = getLaneHeight(lane.id);
+      const resizer = idx < lanesConfig.length - 1 ? `<div class="swimlane-resizer"></div>` : '';
       return `
-        <div class="swimlane" data-lane="${lane.id}">
+        <div class="swimlane" data-lane="${lane.id}" style="height:${h}px">
           <div class="swimlane-header">
             <span class="lane-name-label" onclick="startRenaming('${lane.id}', this)" title="クリックで名前を変更">${esc(lane.name)}</span>
             ${canDel ? `<button class="swimlane-del-btn" onclick="deleteLane('${lane.id}')" title="レーンを削除">✕</button>` : ''}
@@ -1306,7 +1421,7 @@ function desktopRender() {
               ? laneTasks.map(t => desktopCardHtml(t)).join('')
               : `<div class="empty-state" style="padding:12px 4px; font-size:0.75rem;">-</div>`}
           </div>
-        </div>`;
+        </div>${resizer}`;
     }).join('');
   });
 
@@ -1320,6 +1435,7 @@ function desktopRender() {
 
   // Re-attach drag & drop to newly rendered swimlane bodies
   setupDragDrop();
+  setupLaneResizers();
 }
 
 // ── Desktop Modal (new: id=null, edit: id=string) ──
@@ -1892,7 +2008,9 @@ function deleteLane(laneId) {
   const fallback = lanesConfig.find(l => l.id !== laneId)?.id ?? 'personal';
   tasks.forEach(t => { if (getLaneId(t) === laneId) { t.lane = fallback; t.updatedAt = Date.now(); } });
   lanesConfig = lanesConfig.filter(l => l.id !== laneId);
+  delete laneHeights[laneId];
   saveLanes();
+  saveLaneHeights();
   Promise.all(tasks.filter(t => t.lane === fallback && t.updatedAt === Date.now()).map(t => saveTask(t)));
   desktopRender();
 }
@@ -2048,6 +2166,7 @@ window.startRenaming         = startRenaming;
 // ── Init ──
 async function init() {
   loadLanes();
+  loadLaneHeights();
   // Set up desktop drag & drop
   setupDragDrop();
 
