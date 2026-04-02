@@ -167,8 +167,7 @@ html[data-theme="dark"] {
     display: flex;
     gap: 14px;
     padding: 14px;
-    min-height: calc(100vh - 80px);
-    align-items: stretch;
+    align-items: start;
     justify-content: center;
   }
 
@@ -1255,24 +1254,18 @@ function applyLaneHeightAll(laneId, height) {
 document.addEventListener('mousemove', e => {
   if (!resizeState) return;
   e.preventDefault();
-  const { prevId, nextId, startY, startPrevH, startNextH } = resizeState;
+  const { prevId, startY, startPrevH } = resizeState;
   const dy = e.clientY - startY;
-  const minH = 80;
-  const newPrevH = Math.max(minH, Math.min(startPrevH + dy, startPrevH + startNextH - minH));
-  const newNextH = startPrevH + startNextH - newPrevH;
+  const newPrevH = Math.max(80, startPrevH + dy);
   applyLaneHeightAll(prevId, newPrevH);
-  applyLaneHeightAll(nextId, newNextH);
 });
 
 document.addEventListener('mouseup', () => {
   if (!resizeState) return;
-  const { handle, prevId, nextId } = resizeState;
+  const { handle, prevId } = resizeState;
   handle.classList.remove('active');
-  // Read actual height from one of the elements
   const prevEl = document.querySelector(`.swimlane[data-lane="${prevId}"]`);
-  const nextEl = document.querySelector(`.swimlane[data-lane="${nextId}"]`);
   if (prevEl) laneHeights[prevId] = prevEl.offsetHeight;
-  if (nextEl) laneHeights[nextId] = nextEl.offsetHeight;
   saveLaneHeights();
   resizeState = null;
 });
@@ -1408,10 +1401,12 @@ function desktopRender() {
     col.innerHTML = lanesConfig.map((lane, idx) => {
       const laneTasks = filtered.filter(t => getLaneId(t) === lane.id);
       const canDel = lanesConfig.length > 1;
+      const isLast = idx === lanesConfig.length - 1;
       const h = getLaneHeight(lane.id);
-      const resizer = idx < lanesConfig.length - 1 ? `<div class="swimlane-resizer"></div>` : '';
+      const resizer = !isLast ? `<div class="swimlane-resizer"></div>` : '';
+      const heightStyle = !isLast ? `style="height:${h}px"` : '';
       return `
-        <div class="swimlane" data-lane="${lane.id}" style="height:${h}px">
+        <div class="swimlane" data-lane="${lane.id}" ${heightStyle}>
           <div class="swimlane-header">
             <span class="lane-name-label" onclick="startRenaming('${lane.id}', this)" title="クリックで名前を変更">${esc(lane.name)}</span>
             ${canDel ? `<button class="swimlane-del-btn" onclick="deleteLane('${lane.id}')" title="レーンを削除">✕</button>` : ''}
@@ -1436,6 +1431,15 @@ function desktopRender() {
   // Re-attach drag & drop to newly rendered swimlane bodies
   setupDragDrop();
   setupLaneResizers();
+
+  // Equalize last lane height across all 3 columns
+  if (lanesConfig.length > 0) {
+    const lastLaneId = lanesConfig[lanesConfig.length - 1].id;
+    const lastLanes = document.querySelectorAll(`.swimlane[data-lane="${lastLaneId}"]`);
+    let maxH = 0;
+    lastLanes.forEach(el => { if (el.scrollHeight > maxH) maxH = el.scrollHeight; });
+    lastLanes.forEach(el => { el.style.minHeight = maxH + 'px'; });
+  }
 }
 
 // ── Desktop Modal (new: id=null, edit: id=string) ──
