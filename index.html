@@ -312,14 +312,16 @@ html[data-theme="dark"] {
     background: var(--bg); border: none; border-bottom: 1.5px solid var(--accent);
     color: var(--text); outline: none; width: 100px; padding: 0 2px;
   }
-  .swimlane-del-btn {
+  .swimlane-del-btn, .swimlane-add-btn {
     background: none; border: none; cursor: pointer;
     color: var(--text-muted); font-size: 0.6rem; padding: 1px 4px;
     border-radius: 3px; opacity: 0; transition: opacity 0.15s, color 0.15s;
     line-height: 1;
   }
-  .swimlane:hover .swimlane-del-btn { opacity: 0.6; }
+  .swimlane:hover .swimlane-del-btn, .swimlane:hover .swimlane-add-btn { opacity: 0.6; }
   .swimlane-del-btn:hover { opacity: 1 !important; color: #ef4444; background: rgba(239,68,68,0.1); }
+  .swimlane-add-btn:hover { opacity: 1 !important; color: var(--accent); background: rgba(99,102,241,0.1); }
+  .swimlane-add-btn { font-size: 0.7rem; font-weight: 700; }
 
   /* Lane management bar */
   .lane-bar {
@@ -1453,7 +1455,10 @@ function desktopRender() {
         <div class="swimlane" data-lane="${lane.id}" ${heightStyle}>
           <div class="swimlane-header">
             <span class="lane-name-label" onclick="startRenaming('${lane.id}', this)" title="クリックで名前を変更">${esc(lane.name)}</span>
-            ${canDel ? `<button class="swimlane-del-btn" onclick="deleteLane('${lane.id}')" title="レーンを削除">✕</button>` : ''}
+            <span>
+              <button class="swimlane-add-btn" onclick="openDesktopModal(null, '${lane.id}', '${status}')" title="このレーンにタスクを追加">＋</button>
+              ${canDel ? `<button class="swimlane-del-btn" onclick="deleteLane('${lane.id}')" title="レーンを削除">✕</button>` : ''}
+            </span>
           </div>
           <div class="swimlane-body" data-status="${status}" data-lane="${lane.id}">
             ${laneTasks.length > 0
@@ -1487,7 +1492,7 @@ function desktopRender() {
 }
 
 // ── Desktop Modal (new: id=null, edit: id=string) ──
-function openDesktopModal(id = null) {
+function openDesktopModal(id = null, defaultLane = null, defaultStatus = null) {
   desktopEditingId = id;
   const task = id ? tasks.find(t => t.id === id) : null;
   document.getElementById('modalTitle').textContent  = task ? 'Edit Task' : 'New Task';
@@ -1496,9 +1501,9 @@ function openDesktopModal(id = null) {
   document.getElementById('taskDesc').value          = task?.desc     ?? '';
   const laneSelect = document.getElementById('taskLane');
   laneSelect.innerHTML = lanesConfig.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
-  laneSelect.value = task ? getLaneId(task) : (lanesConfig[0]?.id ?? 'personal');
+  laneSelect.value = task ? getLaneId(task) : (defaultLane ?? lanesConfig[0]?.id ?? 'personal');
   document.getElementById('taskCat').value           = task?.category ?? 'work';
-  document.getElementById('taskStatus').value        = task?.status   ?? 'todo';
+  document.getElementById('taskStatus').value        = task?.status   ?? (defaultStatus ?? 'todo');
   document.getElementById('taskDue').value           = task?.due      ?? '';
   document.getElementById('taskRepeat').checked      = task?.repeat   ?? false;
   document.getElementById('taskAi').checked          = task?.ai       ?? false;
