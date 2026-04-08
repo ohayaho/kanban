@@ -162,6 +162,47 @@ html[data-theme="dark"] {
   .filter-chip:hover { border-color: rgba(0,0,0,0.2); }
   .filter-chip.active { background: rgba(99,102,241,0.15); border-color: #6366f1; color: #4f46e5; }
 
+  /* Pressure forecast widget */
+  .pressure-widget {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .pressure-widget-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-right: 2px;
+    white-space: nowrap;
+  }
+  .pw-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 7px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    min-width: 52px;
+    transition: all 0.15s;
+  }
+  .pw-day.today {
+    border-color: var(--doing);
+    background: rgba(59,130,246,0.06);
+  }
+  .pw-day.warn {
+    border-color: #ef4444;
+    background: rgba(239,68,68,0.08);
+  }
+  .pw-date { font-size: 0.6rem; color: var(--text-muted); }
+  .pw-icon { font-size: 0.85rem; line-height: 1; }
+  .pw-hpa { font-size: 0.78rem; font-weight: 800; color: var(--text); }
+  .pw-day.warn .pw-hpa { color: #ef4444; }
+  .pw-diff { font-size: 0.58rem; color: var(--text-muted); }
+  .pw-diff.drop { color: #ef4444; font-weight: 700; }
+  .pw-diff.rise { color: #10b981; }
+
   /* Board */
   .board {
     display: flex;
@@ -891,6 +932,9 @@ html[data-theme="dark"] {
              maxlength="20">
       <button class="lane-add-ok" onclick="commitAddLane()">追加</button>
     </div>
+  </div>
+  <div class="pressure-widget" id="pressureWidget">
+    <span class="pressure-widget-label">気圧予報</span>
   </div>
 </div>
 
@@ -2167,12 +2211,71 @@ window.commitAddLane         = commitAddLane;
 window.deleteLane            = deleteLane;
 window.startRenaming         = startRenaming;
 
+// ── Pressure forecast widget ──
+async function loadPressureForecast() {
+  try {
+    const LAT = 35.68184, LON = 140.04152;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`
+      + `&hourly=pressure_msl&daily=weather_code&timezone=Asia%2FTokyo&forecast_days=7`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const WMO = {0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌧',53:'🌧',55:'🌧',
+      61:'🌧',63:'🌧',65:'🌧',71:'🌨',73:'🌨',75:'🌨',80:'🌦',81:'🌦',82:'🌧',95:'⛈',96:'⛈',99:'⛈'};
+    const DAYS = ['日','月','火','水','木','金','土'];
+
+    // Aggregate hourly → daily avg pressure
+    const dailyP = {};
+    data.hourly.time.forEach((t, i) => {
+      const d = t.slice(0,10), p = data.hourly.pressure_msl[i];
+      if (p == null) return;
+      if (!dailyP[d]) dailyP[d] = [];
+      dailyP[d].push(p);
+    });
+
+    const days = data.daily.time.map((d, i) => {
+      const ps = dailyP[d] || [];
+      return {
+        date: d,
+        avg: ps.length ? Math.round(ps.reduce((a,b)=>a+b,0)/ps.length) : null,
+        icon: WMO[data.daily.weather_code[i]] || '❓',
+      };
+    });
+
+    // Build HTML
+    const widget = document.getElementById('pressureWidget');
+    if (!widget) return;
+
+    let html = '<span class="pressure-widget-label">気圧予報</span>';
+    days.forEach((d, i) => {
+      const diff = i > 0 ? d.avg - days[i-1].avg : 0;
+      const warn = d.avg < 1005 || (i > 0 && diff <= -8);
+      const dt = new Date(d.date);
+      const dayName = DAYS[dt.getDay()];
+      const isToday = i === 0;
+      const diffStr = i === 0 ? '' : (diff > 0 ? '+' + diff : '' + diff);
+      const diffClass = diff <= -8 ? 'drop' : diff >= 5 ? 'rise' : '';
+
+      html += `<div class="pw-day${isToday ? ' today' : ''}${warn ? ' warn' : ''}">
+        <div class="pw-date">${d.date.slice(5)} (${dayName})</div>
+        <div class="pw-icon">${d.icon}</div>
+        <div class="pw-hpa">${d.avg}</div>
+        ${diffStr ? `<div class="pw-diff ${diffClass}">${diffStr}</div>` : '<div class="pw-diff">today</div>'}
+      </div>`;
+    });
+    widget.innerHTML = html;
+  } catch (e) {
+    console.warn('気圧予報の取得に失敗:', e);
+  }
+}
+
 // ── Init ──
 async function init() {
   loadLanes();
   loadLaneHeights();
   // Set up desktop drag & drop
   setupDragDrop();
+  // Load pressure forecast (non-blocking)
+  loadPressureForecast();
 
   // Set initial mobile tab background
   if (isMobile()) {
