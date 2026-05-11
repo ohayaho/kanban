@@ -1370,11 +1370,12 @@ function sortTasks(list) {
 }
 
 // Due badge (mobile=false → desktop div, mobile=true → span)
-function dueBadge(due, mobile = false) {
+function dueBadge(due, mobile = false, status = '') {
   if (!due) return '';
+  const [tag, cls] = mobile ? ['span', 'card-due-m'] : ['div', 'card-due'];
+  if (status === 'done') return `<${tag} class="${cls} ok">📅 ${due}</${tag}>`;
   const today = getDateStr(Date.now());
   const diff = (new Date(due) - new Date(today)) / 86400000;
-  const [tag, cls] = mobile ? ['span', 'card-due-m'] : ['div', 'card-due'];
   if (diff < 0)  return `<${tag} class="${cls} overdue">⚠ 期限切れ ${due}</${tag}>`;
   if (diff <= 3) return `<${tag} class="${cls} soon">⏰ 期日 ${due}</${tag}>`;
   return `<${tag} class="${cls} ok">📅 ${due}</${tag}>`;
@@ -1419,7 +1420,7 @@ function desktopCardHtml(t) {
         <div class="card-body-left">
           <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${t.ai ? '<span style="font-size:0.7rem; margin-left:2px;">🤖</span> ' : ''}${esc(t.title)}</div>
           ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
-          ${dueBadge(t.due)}
+          ${dueBadge(t.due, false, t.status)}
         </div>
       </div>
     </div>
@@ -1654,7 +1655,7 @@ function mobileCardHtml(t) {
         ${t.desc?`<div class="card-desc">${esc(t.desc)}</div>`:''}
         <div class="card-footer">
           <span class="cat-badge cb-${t.category}">${CAT[t.category]}</span>
-          ${dueBadge(t.due, true)}
+          ${dueBadge(t.due, true, t.status)}
           ${t.doneAt&&t.status==='done'?`<span style="font-size:.65rem;color:var(--text-muted)">✓ ${new Date(t.doneAt).toLocaleDateString('ja-JP',{month:'short',day:'numeric'})}</span>`:''}
         </div>
       </div>
