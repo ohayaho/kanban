@@ -2274,6 +2274,23 @@ async function loadPressureForecast() {
   }
 }
 
+// ── Auto-refresh when the date changes (no manual refresh needed) ──
+let _watchedDate = getDateStr(Date.now());
+function watchDateChange() {
+  const tick = () => {
+    const now = getDateStr(Date.now());
+    if (now !== _watchedDate) {
+      _watchedDate = now;
+      // Day rolled over: refresh date-dependent UI
+      loadPressureForecast();
+      if (typeof render === 'function') render();
+    }
+  };
+  // Check every 30s; also re-check when the tab regains focus / wakes from sleep
+  setInterval(tick, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+}
+
 // ── Init ──
 async function init() {
   loadLanes();
@@ -2282,6 +2299,8 @@ async function init() {
   setupDragDrop();
   // Load pressure forecast (non-blocking)
   loadPressureForecast();
+  // Auto-refresh date-dependent UI at midnight
+  watchDateChange();
 
   // Set initial mobile tab background
   if (isMobile()) {
