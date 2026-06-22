@@ -420,6 +420,9 @@ html[data-theme="dark"] {
   .card-body-left { flex: 1; min-width: 0; }
   .card-title { font-size: 0.8rem; font-weight: 600; line-height: 1.4; word-break: break-word; }
   .card-desc  { font-size: 0.68rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; word-break: break-word; }
+  .card-link  { color: #2563eb; text-decoration: underline; word-break: break-all; }
+  html[data-theme="dark"] .card-link,
+  html:not([data-theme="light"]) .card-link { color: #7db4ff; }
   .card-due   { font-size: 0.65rem; margin-top: 3px; font-weight: 600; }
   .card-due.overdue { color: #ef4444; }
   .card-due.soon    { color: #f59e0b; }
@@ -921,8 +924,6 @@ html[data-theme="dark"] {
   <span class="filter-chip active" data-cat="all"      onclick="setFilter('all')">All</span>
   <span class="filter-chip"        data-cat="daily"    onclick="setFilter('daily')">Daily</span>
   <span class="filter-chip"        data-cat="personal" onclick="setFilter('personal')">Personal</span>
-  <span class="filter-chip"        data-cat="work"     onclick="setFilter('work')">Work</span>
-  <span class="filter-chip"        data-cat="study"    onclick="setFilter('study')">Study</span>
   <span class="filter-chip"        data-cat="kids"     onclick="setFilter('kids')">Kids</span>
   <span class="filter-chip"        data-cat="other"    onclick="setFilter('other')">Other</span>
   <span class="filter-separator"></span>
@@ -979,10 +980,7 @@ html[data-theme="dark"] {
     <select id="taskCat">
       <option value="daily">Daily</option>
       <option value="personal">Personal</option>
-      <option value="work">Work</option>
-      <option value="study">Study</option>
       <option value="kids">Kids</option>
-      <option value="other">Other</option>
     </select>
     <label>Status</label>
     <select id="taskStatus">
@@ -1041,11 +1039,8 @@ html[data-theme="dark"] {
   <div class="chips-scroll" id="chips">
     <span class="chip active" data-cat="all"      onclick="setFilter('all')">All</span>
     <span class="chip"        data-cat="daily"    onclick="setFilter('daily')">Daily</span>
-    <span class="chip"        data-cat="work"     onclick="setFilter('work')">Work</span>
-    <span class="chip"        data-cat="study"    onclick="setFilter('study')">Study</span>
     <span class="chip"        data-cat="personal" onclick="setFilter('personal')">Personal</span>
     <span class="chip"        data-cat="kids"     onclick="setFilter('kids')">Kids</span>
-    <span class="chip"        data-cat="other"    onclick="setFilter('other')">Other</span>
   </div>
 </div>
 
@@ -1112,11 +1107,8 @@ html[data-theme="dark"] {
       <label>カテゴリ</label>
       <div class="cat-grid" id="catGrid">
         <button class="cat-opt"     data-c="daily"    onclick="selCat('daily')">Daily</button>
-        <button class="cat-opt sel" data-c="work"     onclick="selCat('work')">Work</button>
-        <button class="cat-opt"     data-c="study"    onclick="selCat('study')">Study</button>
-        <button class="cat-opt"     data-c="personal" onclick="selCat('personal')">Personal</button>
+        <button class="cat-opt sel" data-c="personal" onclick="selCat('personal')">Personal</button>
         <button class="cat-opt"     data-c="kids"     onclick="selCat('kids')">Kids</button>
-        <button class="cat-opt"     data-c="other"    onclick="selCat('other')">Other</button>
       </div>
     </div>
     <div class="field">
@@ -1350,6 +1342,15 @@ async function removeTask(id) { await deleteDoc(doc(db,'tasks',id)); }
 
 function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function esc(s) { const el = document.createElement('span'); el.textContent = s; return el.innerHTML; }
+// Escape, then turn http(s) URLs into clickable links (opens in new tab).
+function escWithLinks(s) {
+  return esc(s ?? '').replace(/(https?:\/\/[^\s<]+)/g, (m) => {
+    let url = m, tail = '';
+    const tm = url.match(/([)\].,;:!?'"]+)$/);   // keep trailing punctuation out of the link
+    if (tm) { tail = tm[1]; url = url.slice(0, -tail.length); }
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="card-link" onclick="event.stopPropagation()">${url}</a>${tail}`;
+  });
+}
 function getDateStr(ts) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1418,8 +1419,8 @@ function desktopCardHtml(t) {
       </div>
       <div class="card-body">
         <div class="card-body-left">
-          <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${t.ai ? '<span style="font-size:0.7rem; margin-left:2px;">🤖</span> ' : ''}${esc(t.title)}</div>
-          ${t.desc ? `<div class="card-desc">${esc(t.desc)}</div>` : ''}
+          <div class="card-title">${t.repeat ? '<span style="font-size:0.7rem">🔄</span> ' : ''}${t.ai ? '<span style="font-size:0.7rem; margin-left:2px;">🤖</span> ' : ''}${escWithLinks(t.title)}</div>
+          ${t.desc ? `<div class="card-desc">${escWithLinks(t.desc)}</div>` : ''}
           ${dueBadge(t.due, false, t.status)}
         </div>
       </div>
@@ -1503,7 +1504,7 @@ function openDesktopModal(id = null, defaultLane = null, defaultStatus = null) {
   const laneSelect = document.getElementById('taskLane');
   laneSelect.innerHTML = lanesConfig.map(l => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
   laneSelect.value = task ? getLaneId(task) : (defaultLane ?? lanesConfig[0]?.id ?? 'personal');
-  document.getElementById('taskCat').value           = task?.category ?? 'work';
+  document.getElementById('taskCat').value           = task?.category ?? 'personal';
   document.getElementById('taskStatus').value        = task?.status   ?? (defaultStatus ?? 'todo');
   document.getElementById('taskDue').value           = task?.due      ?? '';
   document.getElementById('taskRepeat').checked      = task?.repeat   ?? false;
@@ -1630,7 +1631,7 @@ function setFilter(cat) {
 // MOBILE LOGIC
 // ════════════════════════════════════════
 let currentTab = 'todo';
-let selectedCat = 'work';
+let selectedCat = 'personal';
 let selectedStatus = 'todo';
 let ctxTargetId = null;
 let deletedTask = null;
@@ -1647,12 +1648,12 @@ function mobileCardHtml(t) {
            ontouchmove="swipeMove(event,'${t.id}')"
            ontouchend="swipeEnd(event,'${t.id}')">
         <div class="card-top">
-          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat?'🔄 ':''}${t.ai?'🤖 ':''}${esc(t.title)}</div>
+          <div class="card-title ${t.status==='done'?'struck':''}">${t.pinned?'📌 ':''}${t.repeat?'🔄 ':''}${t.ai?'🤖 ':''}${escWithLinks(t.title)}</div>
           <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
             <button class="card-menu-btn" onclick="openCtx(event,'${t.id}')">⋯</button>
           </div>
         </div>
-        ${t.desc?`<div class="card-desc">${esc(t.desc)}</div>`:''}
+        ${t.desc?`<div class="card-desc">${escWithLinks(t.desc)}</div>`:''}
         <div class="card-footer">
           <span class="cat-badge cb-${t.category}">${CAT[t.category]}</span>
           ${dueBadge(t.due, true, t.status)}
@@ -1704,8 +1705,8 @@ function mobileRender() {
   }
 
 
-  const personalTasks = filtered.filter(t => t.category !== 'work');
-  const workTasks     = filtered.filter(t => t.category === 'work');
+  const workTasks     = filtered.filter(t => getLaneId(t) === 'work');
+  const personalTasks = filtered.filter(t => getLaneId(t) !== 'work');
 
   let html = '';
   if (workTasks.length > 0) {
@@ -1762,7 +1763,7 @@ function openSheet(id = null) {
   document.getElementById('fDue').value = task ? (task.due || '') : '';
   document.getElementById('fRepeat').checked = task ? (task.repeat || false) : false;
   document.getElementById('fAi').checked = task ? (task.ai || false) : false;
-  selCat(task ? task.category : 'work');
+  selCat(task ? task.category : 'personal');
   selStatus(task ? task.status : currentTab);
 
   const bar = document.getElementById('quickDoneBar');
@@ -2082,7 +2083,7 @@ async function togglePin(id) {
 async function toggleLane(id) {
   const task = tasks.find(t => t.id === id);
   if (!task) return;
-  task.category = task.category === 'work' ? 'personal' : 'work';
+  task.lane = getLaneId(task) === 'work' ? 'personal' : 'work';
   task.updatedAt = Date.now();
   render();
   await saveTask(task);
@@ -2312,9 +2313,15 @@ async function init() {
     tasks = snapshot.docs
       .map(d => ({ id:d.id, ...d.data() }))
       .filter(t => !pendingDeletes.has(t.id));
-    // Migrate: health → personal
-    const toMigrate = tasks.filter(t => t.category === 'health');
-    for (const t of toMigrate) { t.category = 'personal'; await saveTask(t); }
+    // Migrate retired categories (health / work / study) → personal.
+    // Preserve each card's current swimlane by pinning it to t.lane first,
+    // so collapsing the category doesn't move work cards out of the 仕事 lane.
+    const toMigrate = tasks.filter(t => ['health','work','study'].includes(t.category));
+    for (const t of toMigrate) {
+      if (!t.lane) t.lane = getLaneId(t);
+      t.category = 'personal';
+      await saveTask(t);
+    }
     render();
     if (firstLoad) {
       firstLoad = false;
