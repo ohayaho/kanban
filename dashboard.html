@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロジェクト ダッシュボード</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --head: #0b1220;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 20px 64px;
+    line-height: 1.5;
+  }
+  header { max-width: 1280px; margin: 0 auto 22px; }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 0.85rem; }
+  .filters {
+    max-width: 1280px; margin: 0 auto 16px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--muted); padding: 6px 14px; border-radius: 999px;
+    font-size: 0.8rem; cursor: pointer; transition: .15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  .chip.active { background: var(--accent); color: #08263a; border-color: var(--accent); font-weight: 600; }
+
+  .table-wrap { max-width: 1280px; margin: 0 auto; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: 14px; }
+  table { width: 100%; border-collapse: collapse; min-width: 980px; }
+  thead th {
+    background: var(--head); color: var(--muted); text-align: left;
+    font-size: 0.74rem; font-weight: 600; letter-spacing: .03em;
+    padding: 12px 14px; position: sticky; top: 0; border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  tbody td { padding: 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 0.86rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #233146; }
+
+  .pname { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+  .pname .emoji { font-size: 1.25rem; }
+  .dir { color: var(--muted); font-size: 0.7rem; font-family: ui-monospace, monospace; margin-top: 3px; }
+  .desc { color: #cbd5e1; max-width: 320px; }
+  .stack { color: var(--muted); font-size: 0.78rem; margin-top: 6px; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; max-width: 260px; }
+  .badge { font-size: 0.71rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+  .git { background: #312e2b; color: #f0a868; }
+  .vercel { background: #1f2937; color: #e5e7eb; border: 1px solid #4b5563; }
+  .vanalytics { background: #1e1b4b; color: #c4b5fd; }
+  .firebase { background: #3a2e0e; color: #ffca28; }
+  .google { background: #1a3a2e; color: #4ade80; }
+  .gmaps { background: #14342b; color: #34d399; }
+  .apple { background: #2a2a2a; color: #e5e7eb; }
+  .cloudflare { background: #3a2410; color: #f6821f; }
+  .none { background: #2a2a2a; color: #94a3b8; }
+
+  a.url { color: var(--accent); text-decoration: none; word-break: break-all; }
+  a.url:hover { text-decoration: underline; }
+  .url.na { color: var(--muted); }
+
+  .ios-yes { color: #4ade80; font-weight: 700; }
+  .ios-no { color: var(--muted); }
+  .repo { color: var(--muted); font-size: 0.78rem; white-space: nowrap; }
+
+  footer { max-width: 1280px; margin: 26px auto 0; color: var(--muted); font-size: 0.75rem; }
+  footer code { background:#243449; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗂 プロジェクト ダッシュボード</h1>
+  <div class="sub">/Users/ayaho/claude_code 配下 ・ 最終更新 2026-06-24</div>
+</header>
+
+<div class="filters" id="filters">
+  <span class="chip active" data-f="all">すべて</span>
+  <span class="chip" data-f="web">Web</span>
+  <span class="chip" data-f="ios">iOS有</span>
+  <span class="chip" data-f="live">公開URL有</span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>プロジェクト</th>
+        <th>概要</th>
+        <th>使用サービス</th>
+        <th>URL</th>
+        <th>iOS</th>
+        <th>リポジトリ</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer>
+  ※ サービス・URLは各リポジトリの設定ファイル／READMEから抽出。「未公開」はデプロイ先がコード上で確認できなかったもの。<br>
+  ※ <code>everyday_recipe</code> は空フォルダのため非表示。
+</footer>
+
+<script>
+const projects = [
+  {
+    emoji: "📋", name: "Kanban", dir: "Kanban/",
+    desc: "Firebase Firestore をバックエンドにしたカンバンボード。1ファイルでPC/モバイル両対応。気圧予報・体調連携あり。",
+    stack: "Vanilla JS + Firebase",
+    services: [
+      {t:"GitHub", c:"git"}, {t:"Vercel", c:"vercel"},
+      {t:"Firebase Firestore", c:"firebase"}, {t:"Google(SA認証)", c:"google"}
+    ],
+    url: "https://kanban-lovat-pi.vercel.app",
+    repo: "ohayaho/kanban", ios: false,
+    tags: ["web","live"]
+  },
+  {
+    emoji: "☀️", name: "DekitaButton", dir: "ohayo-app/",
+    desc: "子ども向けのあさ・よるのしたくアプリ。カードをめくって完了、全部できたらお祝い演出。",
+    stack: "Vanilla JS / SwiftUI (app.ohayo.ohayo)",
+    services: [
+      {t:"GitHub", c:"git"}, {t:"Vercel", c:"vercel"},
+      {t:"Vercel Analytics", c:"vanalytics"},
+      {t:"Cloudflare(ドメイン取得)", c:"cloudflare"},
+      {t:"Apple(App Store API)", c:"apple"}
+    ],
+    url: "https://ohayo.app",
+    repo: "ohayaho/ohayo.app", ios: true,
+    tags: ["web","ios","live"]
+  },
+  {
+    emoji: "🌙", name: "Bye PMS", dir: "Bye_PMS/",
+    desc: "PMS・不眠に悩む女性向けの食事チェックアプリ。栄養素でなく食品単位でレコメンド。バックエンド不要。",
+    stack: "React 18 + TypeScript + Vite (localStorage)",
+    services: [ {t:"GitHub", c:"git"}, {t:"Vercel", c:"vercel"} ],
+    url: "https://bye-pms.vercel.app/",
+    repo: "ohayaho/bye-pms", ios: false,
+    tags: ["web","live"]
+  },
+  {
+    emoji: "🗺", name: "保育園マップ", dir: "Hoiku_map/",
+    desc: "習志野市の保育施設47件を Google Maps 上に表示するSPA。単一HTMLで完結、ビルド不要。",
+    stack: "単一HTML",
+    services: [ {t:"Google Maps API", c:"gmaps"}, {t:"geocoding.jp", c:"google"} ],
+    url: null,
+    repo: "(ローカルのみ)", ios: false,
+    tags: ["web"]
+  },
+  {
+    emoji: "💴", name: "育休給付金シミュレーター", dir: "Others/ikuji-kyufu-tool.html",
+    desc: "育児休業給付金を試算する単一HTMLツール。外部サービス・バックエンドなしのスタンドアロン。",
+    stack: "単一HTML",
+    services: [ {t:"なし", c:"none"} ],
+    url: null,
+    repo: "(単一ファイル)", ios: false,
+    tags: ["web"]
+  }
+];
+
+const tbody = document.getElementById("tbody");
+function render(filter) {
+  tbody.innerHTML = "";
+  projects.filter(p => filter === "all" || p.tags.includes(filter)).forEach(p => {
+    const services = p.services.map(s => `<span class="badge ${s.c}">${s.t}</span>`).join("");
+    const url = p.url
+      ? `<a class="url" href="${p.url}" target="_blank" rel="noopener">${p.url.replace(/^https?:\/\//,'')}</a>`
+      : `<span class="url na">— 未公開 / ローカル</span>`;
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>
+          <div class="pname"><span class="emoji">${p.emoji}</span>${p.name}</div>
+          <div class="dir">${p.dir}</div>
+        </td>
+        <td>
+          <div class="desc">${p.desc}</div>
+          <div class="stack">🔧 ${p.stack}</div>
+        </td>
+        <td><div class="badges">${services}</div></td>
+        <td>${url}</td>
+        <td><span class="${p.ios?'ios-yes':'ios-no'}">${p.ios?'✅ あり':'—'}</span></td>
+        <td><span class="repo">🐙 ${p.repo}</span></td>
+      </tr>`);
+  });
+}
+render("all");
+
+document.getElementById("filters").addEventListener("click", e => {
+  if (!e.target.classList.contains("chip")) return;
+  document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+  e.target.classList.add("active");
+  render(e.target.dataset.f);
+});
+</script>
+</body>
+</html>
